@@ -47,6 +47,10 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
     }
   };
 
+  const handleDeveloperClick = () => {
+    window.open('https://www.facebook.com/tamim.shaon.5', '_blank');
+  };
+
   return (
     <div className="p-4 space-y-6 animate-fadeIn pb-10">
       {/* Profile Header Card */}
@@ -163,10 +167,13 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
         <MenuOption icon="🚪" title={t.LOGOUT} isDanger last onClick={onLogout} />
       </div>
 
-      <div className="mt-8 bg-slate-900 rounded-[32px] p-6 shadow-2xl text-center relative overflow-hidden">
+      <div 
+        onClick={handleDeveloperClick}
+        className="mt-8 bg-slate-900 rounded-[32px] p-6 shadow-2xl text-center relative overflow-hidden cursor-pointer active:scale-95 transition-transform group"
+      >
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-500 via-emerald-500 to-green-500 opacity-20"></div>
-          <h3 className="text-white text-[11px] font-black uppercase tracking-[0.4em]">© Tamim Hasan Shaon</h3>
-          <p className="text-[10px] text-slate-500 font-bold mt-1 tracking-tight italic">AYAT'S STUDIO™ Digital Innovations</p>
+          <h3 className="text-white text-[11px] font-black uppercase tracking-[0.4em] group-hover:text-green-400 transition-colors">© Tamim Hasan Shaon</h3>
+          <p className="text-[10px] text-slate-500 font-bold mt-1 tracking-tight italic group-hover:text-slate-400 transition-colors">AYAT'S STUDIO™ Digital Innovations</p>
       </div>
     </div>
   );

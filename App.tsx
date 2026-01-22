@@ -50,6 +50,31 @@ const Logo: React.FC<{ settings: SystemSettings, onClick: () => void }> = ({ set
   );
 };
 
+const SplashScreen: React.FC<{ onFinish: () => void, logo: string }> = ({ onFinish, logo }) => {
+  useEffect(() => {
+    const timer = setTimeout(onFinish, 3000);
+    return () => clearTimeout(timer);
+  }, [onFinish]);
+
+  return (
+    <div className="fixed inset-0 z-[9999] bg-white dark:bg-slate-950 flex flex-col items-center justify-center animate-fadeIn px-6">
+      <div className="w-52 h-52 mb-8 bg-white dark:bg-slate-900 rounded-[40px] shadow-2xl shadow-green-100 dark:shadow-none border border-green-50 dark:border-slate-800 flex items-center justify-center relative overflow-hidden p-6 animate-[bounce_2s_infinite]">
+         <div className="absolute inset-0 bg-gradient-to-tr from-green-500/5 to-transparent"></div>
+         <img src={logo} alt="Store Logo" className="w-full h-full object-contain relative z-10 drop-shadow-md" />
+      </div>
+      <div className="text-center space-y-3">
+        <h1 className="text-2xl font-black text-green-800 dark:text-green-400 leading-tight">
+          আসসালামু আলাইকুম
+        </h1>
+        <p className="text-lg font-bold text-slate-600 dark:text-slate-300">
+          বিসমিল্লাহ সুপার মার্কেটে আপনাকে স্বাগতম
+        </p>
+        <div className="w-16 h-1 bg-green-500 rounded-full mx-auto mt-4 animate-pulse"></div>
+      </div>
+    </div>
+  );
+};
+
 interface ChatMessage {
   id: string;
   text: string;
@@ -218,6 +243,7 @@ const App: React.FC = () => {
   const [soundsEnabled, setSoundsEnabled] = useState(() => loadFromLS('soundsEnabled', true));
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
 
   const t = TRANSLATIONS[language];
 
@@ -252,9 +278,9 @@ const App: React.FC = () => {
       saveToLS('favorites', favorites);
       saveToLS('recentlyViewedIds', recentlyViewedIds);
       saveToLS('systemSettings_v3', systemSettings);
-      setTimeout(() => setIsSyncing(false), 1000);
+      setTimeout(() => setIsSyncing(false), 500); // Reduced delay for faster sync
     };
-    const timer = setTimeout(syncData, 2000);
+    const timer = setTimeout(syncData, 500); // Trigger save faster
     return () => clearTimeout(timer);
   }, [products, categories, orders, addresses, cart, favorites, recentlyViewedIds, systemSettings]);
 
@@ -343,7 +369,7 @@ const App: React.FC = () => {
       case 'AUTH': return <AuthScreen onLogin={handleLogin} />;
       case 'HOME': return <HomeScreen products={products} categories={categories} recentlyViewed={products.filter(p => recentlyViewedIds.includes(p.id))} onProductClick={handleProductClick} onAddToCart={addToCart} onNavigate={setCurrentScreen} lang={language} settings={systemSettings} />;
       case 'CATEGORIES': return <CategoryScreen products={products} categories={categories} onProductClick={handleProductClick} onAddToCart={addToCart} settings={systemSettings} />;
-      case 'CART': return <CartScreen cart={cart} addresses={addresses} onUpdateQty={(id, d) => setCart(p => p.map(i => i.id === id ? {...i, quantity: Math.max(1, i.quantity+d)} : i))} onRemove={id => setCart(p => p.filter(i => i.id !== id))} onClearCart={() => setCart([])} onPlaceOrder={(m, d, a) => { setOrders(p => [{ id: `ORD-${Date.now()}`, date: 'Just now', total: cart.reduce((a,c)=>a+(c.price*c.quantity),0)+systemSettings.deliveryCharge, status: 'PENDING', itemsCount: cart.length, items: cart.map(i=>({name:i.name, quantity:i.quantity, price:i.price})), paymentMethod: m, deliveryAddress: a }, ...p]); setCart([]); setCurrentScreen('ORDERS'); }} onManageAddresses={() => setCurrentScreen('ADDRESS_LIST')} lang={language} isStoreOpen={systemSettings.isStoreOpen} deliveryCharge={systemSettings.deliveryCharge} />;
+      case 'CART': return <CartScreen cart={cart} addresses={addresses} onUpdateQty={(id, d) => setCart(p => p.map(i => i.id === id ? {...i, quantity: Math.max(1, i.quantity+d)} : i))} onRemove={id => setCart(p => p.filter(i => i.id !== id))} onClearCart={() => setCart([])} onPlaceOrder={(m, d, a) => { setOrders(p => [{ id: `ORD-${Date.now()}`, date: 'Just now', total: cart.reduce((a,c)=>a+(c.price*c.quantity),0)+systemSettings.deliveryCharge, status: 'PENDING', itemsCount: cart.length, items: cart.map(i=>({name:i.name, quantity:i.quantity, price:i.price})), paymentMethod: m, deliveryAddress: a }, ...p]); setCart([]); setCurrentScreen('ORDERS'); }} onManageAddresses={() => setCurrentScreen('ADDRESS_LIST')} lang={language} isStoreOpen={systemSettings.isStoreOpen} deliveryCharge={systemSettings.deliveryCharge} supportPhone={systemSettings.supportPhone} />;
       case 'PROFILE': return <ProfileScreen currentUser={currentUser!} isAdmin={currentUser!.isAdmin} onLogout={handleLogout} onUpdateUser={u => {setCurrentUser(u); saveToLS('currentUser', u);}} onNavigate={setCurrentScreen} lang={language} />;
       case 'MESSAGES': return <MessagingScreen messages={messages} onSendMessage={handleSendMessage} isTyping={isTyping} onBack={() => setCurrentScreen('HOME')} lang={language} />;
       case 'ORDERS': return <OrderListScreen orders={orders} isAdmin={currentUser!.isAdmin} onBack={() => setCurrentScreen('PROFILE')} onCancelOrder={id => setOrders(p=>p.map(o=>o.id===id?{...o,status:'CANCELED'}:o))} onAcceptOrder={id => setOrders(p=>p.map(o=>o.id===id?{...o,status:'ACCEPTED'}:o))} onTrackOrder={o => {setSelectedOrderForTracking(o); setCurrentScreen('TRACKING');}} lang={language} deliveryCharge={systemSettings.deliveryCharge} />;
@@ -360,13 +386,20 @@ const App: React.FC = () => {
     }
   };
 
+  if (showSplash) {
+    return <SplashScreen onFinish={() => setShowSplash(false)} logo={systemSettings.storeLogo} />;
+  }
+
   const isTabScreen = ['HOME', 'CATEGORIES', 'CART', 'PROFILE', 'SETTINGS'].includes(currentScreen);
+  // These screens handle their own scrolling or need no scrolling (like Category which has internal scrolling panes)
+  const isNoScrollScreen = ['CATEGORIES', 'MESSAGES'].includes(currentScreen);
 
   return (
-    <div className={`max-w-md mx-auto min-h-screen ${isDarkMode ? 'dark' : ''} bg-gray-50 dark:bg-slate-950`}>
-      <div className="min-h-screen flex flex-col relative shadow-xl overflow-hidden">
+    // Fixed height 100dvh prevents address bar glitches on mobile
+    <div className={`max-w-md mx-auto h-[100dvh] w-full ${isDarkMode ? 'dark' : ''} bg-gray-50 dark:bg-slate-950 overflow-hidden`}>
+      <div className="h-full flex flex-col relative shadow-xl overflow-hidden bg-gray-50 dark:bg-slate-950">
         {isTabScreen && (
-          <header className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl px-5 py-3 sticky top-0 z-50 flex justify-between items-center border-b border-green-50 dark:border-green-900/20">
+          <header className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl px-5 py-3 sticky top-0 z-50 flex justify-between items-center border-b border-green-50 dark:border-green-900/20 shrink-0">
             <Logo settings={systemSettings} onClick={() => setCurrentScreen('HOME')} />
             <div className="flex gap-2 items-center">
               {isSyncing && <span className="text-[8px] font-black text-green-500 uppercase animate-pulse">Syncing</span>}
@@ -376,8 +409,10 @@ const App: React.FC = () => {
           </header>
         )}
 
-        <main className="flex-1 overflow-y-auto">
+        <main className={`flex-1 ${isNoScrollScreen ? 'overflow-hidden' : 'overflow-y-auto'} scroll-smooth no-scrollbar relative`}>
           {renderScreen()}
+          {/* Add spacer for bottom nav if the screen scrolls, so content isn't hidden behind nav */}
+          {isTabScreen && !isNoScrollScreen && <div className="h-24" />}
         </main>
 
         {isTabScreen && (

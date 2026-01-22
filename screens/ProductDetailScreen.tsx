@@ -118,18 +118,6 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
           <button onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }} className="bg-white/80 dark:bg-slate-800/80 backdrop-blur w-10 h-10 rounded-full flex items-center justify-center shadow active:scale-90 transition-all">
             <span className={`text-xl ${isFavorite ? 'text-red-500' : 'text-gray-400'}`}>{isFavorite ? '❤️' : '🤍'}</span>
           </button>
-
-          {isAdmin && (
-            <button onClick={() => { setEditError(''); setShowEditModal(true); }} className="bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all">
-              <span className="text-sm">✏️</span>
-            </button>
-          )}
-
-          {isAdmin && (
-            <button onClick={() => setShowDeleteConfirm(true)} className="bg-red-600 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all">
-              <span className="text-sm">🗑️</span>
-            </button>
-          )}
         </div>
         
         {hasOffer && (
@@ -156,6 +144,34 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
             {shownOldPrice && <span className="text-gray-300 dark:text-gray-600 line-through text-lg font-bold">৳{shownOldPrice}</span>}
           </div>
         </section>
+
+        {/* --- ADMIN CONTROL PANEL (Only Visible to Admin) --- */}
+        {isAdmin && (
+          <div className="bg-blue-50 dark:bg-blue-900/10 border-2 border-dashed border-blue-200 dark:border-blue-800 rounded-2xl p-4 animate-fadeIn">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🛡️</span>
+                <span className="text-[10px] font-black text-blue-700 dark:text-blue-400 uppercase tracking-widest">{lang === 'bn' ? 'অ্যাডমিন প্যানেল' : 'Admin Control Panel'}</span>
+              </div>
+              <span className="text-[9px] font-bold text-blue-500/70 uppercase">Only Visible to You</span>
+            </div>
+            
+            <div className="flex gap-3">
+              <button 
+                onClick={() => { setEditProd({...product}); setEditError(''); setShowEditModal(true); }}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-200 dark:shadow-none active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <span>✏️</span> {lang === 'bn' ? 'এডিট ইনফরমেশন' : 'Edit Full Details'}
+              </button>
+              <button 
+                onClick={() => setShowDeleteConfirm(true)}
+                className="w-12 bg-red-100 dark:bg-red-900/30 text-red-600 hover:bg-red-200 py-3 rounded-xl text-lg flex items-center justify-center active:scale-95 transition-all border border-red-200 dark:border-red-900/50"
+              >
+                🗑️
+              </button>
+            </div>
+          </div>
+        )}
 
         <section className="space-y-2 border-t dark:border-slate-800 pt-5">
           <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wide">{lang === 'bn' ? 'পণ্যের বিবরণ' : 'Product Details'}</h3>

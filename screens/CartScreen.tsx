@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { TRANSLATIONS } from '../constants';
 import { CartItem, PaymentMethod, Address } from '../types';
@@ -12,9 +11,9 @@ interface CartScreenProps {
   onPlaceOrder: (method: PaymentMethod, details?: { phone?: string, trxId?: string }, address?: Address) => void;
   onManageAddresses: () => void;
   lang: 'bn' | 'en';
-  // Fix: Added missing props to the interface
   isStoreOpen: boolean;
   deliveryCharge: number;
+  supportPhone: string;
 }
 
 const CartScreen: React.FC<CartScreenProps> = ({ 
@@ -26,9 +25,9 @@ const CartScreen: React.FC<CartScreenProps> = ({
   onPlaceOrder, 
   onManageAddresses, 
   lang,
-  // Fix: Destructure isStoreOpen and deliveryCharge
   isStoreOpen,
-  deliveryCharge
+  deliveryCharge,
+  supportPhone
 }) => {
   const [isCheckoutView, setIsCheckoutView] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
@@ -46,12 +45,82 @@ const CartScreen: React.FC<CartScreenProps> = ({
   const selectedAddress = addresses.find(a => a.id === selectedAddrId);
 
   const handleCheckout = () => {
-    // Fix: Add store status check before checkout
     if (!isStoreOpen) {
       alert(lang === 'bn' ? 'দুঃখিত, বর্তমানে দোকান বন্ধ রয়েছে।' : 'Sorry, the store is currently closed.');
       return;
     }
 
+    // --- WhatsApp Notification Logic (Updated Format) ---
+    const itemsList = cart.map((item, index) => 
+      `${index + 1}. ${item.name} (${item.quantity} ${item.unit}) = ৳${item.price * item.quantity}`
+    ).join('\n');
+
+    const subTotal = total;
+    const totalAmount = total + deliveryCharge;
+    const dateStr = new Date().toLocaleString(lang === 'bn' ? 'bn-BD' : 'en-US');
+    
+    // Format Payment Details
+    const paymentDetailsInfo = selectedMethod === 'COD' 
+      ? (lang === 'bn' ? 'ক্যাশ অন ডেলিভারি' : 'Cash On Delivery')
+      : `${selectedMethod}\nPhone: ${paymentPhone}\nTrxID: ${trxId}`;
+
+    // Format message based on language
+    const message = lang === 'bn' 
+      ? `🛒 *নতুন অর্ডার অ্যালার্ট!*
+📅 সময়: ${dateStr}
+
+👤 *ক্রেতার তথ্য:*
+নাম: ${selectedAddress?.receiverName}
+ফোন: ${selectedAddress?.phone}
+ঠিকানা: ${selectedAddress?.details}
+লোকেশন: ${selectedAddress?.label}
+
+🛍️ *অর্ডারের তালিকা:*
+${itemsList}
+
+----------------------------
+💰 পণ্যের দাম: ৳${subTotal}
+🚚 ডেলিভারি চার্জ: ৳${deliveryCharge}
+💵 *সর্বমোট বিল: ৳${totalAmount}*
+----------------------------
+
+💳 *পেমেন্ট মেথড:*
+${paymentDetailsInfo}
+
+[অ্যাপ থেকে অটো-জেনারেটেড]`
+      : `🛒 *New Order Alert!*
+📅 Time: ${dateStr}
+
+👤 *Customer Info:*
+Name: ${selectedAddress?.receiverName}
+Phone: ${selectedAddress?.phone}
+Address: ${selectedAddress?.details}
+Type: ${selectedAddress?.label}
+
+🛍️ *Order Items:*
+${itemsList}
+
+----------------------------
+💰 Subtotal: ৳${subTotal}
+🚚 Delivery: ৳${deliveryCharge}
+💵 *Grand Total: ৳${totalAmount}*
+----------------------------
+
+💳 *Payment Method:*
+${paymentDetailsInfo}
+
+[Auto-generated from App]`;
+
+    // Format phone number (remove 0 from start if exists, add 880)
+    let fmtPhone = supportPhone.replace(/\D/g, '');
+    if (fmtPhone.startsWith('0')) fmtPhone = '88' + fmtPhone;
+    else if (!fmtPhone.startsWith('88')) fmtPhone = '880' + fmtPhone;
+
+    // Open WhatsApp
+    const waLink = `https://wa.me/${fmtPhone}?text=${encodeURIComponent(message)}`;
+    window.open(waLink, '_blank');
+
+    // Proceed with app logic
     setIsPlacingOrder(true);
     setTimeout(() => {
       onPlaceOrder(
@@ -241,7 +310,6 @@ const CartScreen: React.FC<CartScreenProps> = ({
         <div className="fixed bottom-20 left-0 right-0 max-w-md mx-auto p-5 bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] z-40 transition-colors">
            <div className="flex justify-between items-center mb-4 px-2">
             <span className="text-gray-500 text-sm font-bold">{lang === 'bn' ? 'মোট দেয় পরিমাণ' : 'Net Total'}</span>
-            {/* Fix: Use deliveryCharge prop */}
             <span className="text-green-700 dark:text-green-400 font-black text-xl">৳{total + deliveryCharge}</span>
           </div>
           <button 
@@ -327,12 +395,10 @@ const CartScreen: React.FC<CartScreenProps> = ({
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-gray-500 dark:text-gray-400 font-medium">{lang === 'bn' ? 'ডেলিভারি চার্জ' : 'Delivery Charge'}</span>
-            {/* Fix: Use deliveryCharge prop */}
             <span className="font-bold dark:text-white">৳{deliveryCharge}</span>
           </div>
           <div className="flex justify-between text-base border-t dark:border-slate-800 pt-2 mt-2">
             <span className="font-bold dark:text-white">{t.TOTAL}</span>
-            {/* Fix: Use deliveryCharge prop */}
             <span className="font-black text-green-700 dark:text-green-400 text-lg">৳{total + deliveryCharge}</span>
           </div>
         </div>

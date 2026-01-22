@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Product, Category, SystemSettings } from '../types';
 
@@ -25,7 +24,7 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({ products, categories, o
   };
 
   return (
-    <div className="flex h-[calc(100vh-140px)] animate-fadeIn">
+    <div className="flex h-full animate-fadeIn pb-20">
       {/* Sidebar Nav */}
       <div className="w-24 bg-gray-100/50 dark:bg-slate-900/50 flex flex-col overflow-y-auto no-scrollbar border-r border-gray-100 dark:border-slate-800">
         {categories.map(cat => {

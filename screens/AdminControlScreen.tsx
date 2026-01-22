@@ -1,4 +1,3 @@
-
 import React, { useMemo, useRef, useState } from 'react';
 import { SystemSettings, Screen, Product, Order } from '../types';
 
@@ -84,9 +83,25 @@ const AdminControlScreen: React.FC<AdminControlScreenProps> = ({
               </div>
             </div>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 p-2 overflow-hidden shadow-inner">
+          
+          <div 
+            onClick={() => fileInputRef.current?.click()}
+            className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 p-2 overflow-hidden shadow-inner cursor-pointer hover:bg-white/10 transition-colors relative group"
+            title={lang === 'bn' ? 'লোগো পরিবর্তন করুন' : 'Change Logo'}
+          >
              <img src={settings.storeLogo} alt="Logo" className="w-full h-full object-contain" />
+             <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+               <span className="text-[8px] font-bold text-white">EDIT</span>
+             </div>
           </div>
+          {/* Hidden Input for Logo Upload */}
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            className="hidden" 
+            accept="image/*" 
+            onChange={handleLogoUpload} 
+          />
         </div>
 
         {/* Highlighted Primary Stats */}
@@ -244,12 +259,30 @@ const AdminControlScreen: React.FC<AdminControlScreenProps> = ({
              </div>
              
              <div className="pt-4 border-t border-slate-50 dark:border-slate-800 space-y-4">
-                <ConfigInput 
-                  label={lang === 'bn' ? 'দোকানের লোগো (URL)' : 'Store Logo (URL)'} 
-                  value={settings.storeLogo} 
-                  onChange={v => handleValueChange('storeLogo', v)} 
-                  placeholder="https://..."
-                />
+                <div>
+                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 block mb-1">
+                      {lang === 'bn' ? 'দোকানের লোগো (URL/Upload)' : 'Store Logo (URL/Upload)'}
+                   </label>
+                   <div className="flex gap-2">
+                      <div className="flex-1">
+                          <input 
+                            type="text" 
+                            value={settings.storeLogo} 
+                            onChange={e => handleValueChange('storeLogo', e.target.value)} 
+                            placeholder="https://..."
+                            className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-[11px] font-bold dark:text-white focus:ring-2 focus:ring-green-500/20 outline-none transition-all"
+                          />
+                      </div>
+                      <button 
+                        onClick={() => fileInputRef.current?.click()}
+                        className="bg-slate-100 dark:bg-slate-800 px-3 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700"
+                        title="Upload Image"
+                      >
+                        📂
+                      </button>
+                   </div>
+                </div>
+                
                 <ConfigInput 
                   label={lang === 'bn' ? 'স্লোগান' : 'Headline'} 
                   value={settings.storeSlogan} 

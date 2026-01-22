@@ -174,6 +174,10 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
     }, 1000);
   };
 
+  const handleDeveloperClick = () => {
+    window.open('https://www.facebook.com/tamim.shaon.5', '_blank');
+  };
+
   const renderForgotFlow = () => {
     switch (forgotStep) {
       case 'PHONE':
@@ -389,8 +393,11 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
           </div>
         )}
 
-        <div className="pt-10 flex flex-col items-center gap-4 border-t border-gray-50 dark:border-slate-900">
-          <p className="text-[9px] font-black text-gray-300 dark:text-gray-700 uppercase tracking-widest text-center">Premium Grocery Experience • Powered by AYAT'S STUDIO™</p>
+        <div 
+          onClick={handleDeveloperClick}
+          className="pt-10 flex flex-col items-center gap-4 border-t border-gray-50 dark:border-slate-900 cursor-pointer group active:scale-95 transition-transform"
+        >
+          <p className="text-[9px] font-black text-gray-300 dark:text-gray-700 uppercase tracking-widest text-center group-hover:text-green-600 transition-colors">Premium Grocery Experience • Powered by AYAT'S STUDIO™</p>
         </div>
       </div>
     </div>
