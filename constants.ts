@@ -1,0 +1,225 @@
+
+import { Category, Product, Order } from './types';
+
+export const COLORS = {
+  PRIMARY: '#16a34a',
+  PRIMARY_DARK: '#15803d',
+  SECONDARY: '#f97316',
+  ACCENT: '#ffffff',
+  BG_LIGHT: '#f9fafb',
+  TEXT_MAIN: '#111827',
+  TEXT_MUTED: '#6b7280',
+};
+
+export const TRANSLATIONS = {
+  bn: {
+    APP_NAME: 'বিসমিল্লাহ সুপার মার্কেট',
+    SEARCH_HINT: 'আপনার প্রয়োজনীয় পণ্যটি খুঁজুন...',
+    CATEGORIES: 'জনপ্রিয় ক্যাটাগরি',
+    FEATURED: 'সেরা ডিল এবং অফার',
+    ADD_TO_CART: 'যোগ করুন',
+    CHECKOUT: 'অর্ডার সম্পন্ন করুন',
+    TOTAL: 'সর্বমোট',
+    UNIT: 'পরিমাণ',
+    OFF: 'ছাড়',
+    EMPTY_CART: 'আপনার ঝুড়িটি খালি',
+    ORDER_HISTORY: 'পূর্বের অর্ডারসমূহ',
+    PROFILE: 'আমার প্রোফাইল',
+    GUIDE: 'ডেভেলপার গাইড',
+    PAYMENT_METHOD: 'পেমেন্ট পদ্ধতি সিলেক্ট করুন',
+    COD: 'ক্যাশ অন ডেলিভারি',
+    BKASH: 'বিকাশ (bKash)',
+    NAGAD: 'নগদ (Nagad)',
+    ACCOUNT_NUMBER: 'অ্যাকাউন্ট নম্বর',
+    TRX_ID: 'ট্রানজেকশন আইডি',
+    SETTINGS: 'সেটিংস',
+    LANGUAGE: 'অ্যাপের ভাষা',
+    NOTIFICATIONS: 'নোটিফিকেশন',
+    DARK_MODE: 'ডার্ক মোড',
+    LOGOUT: 'লগ আউট',
+    TAP_TO_LOGOUT: 'লগ আউট করতে ট্যাপ করুন',
+    CANCEL: 'বাতিল',
+    SAVE: 'সেভ করুন',
+    EDIT_PROFILE: 'প্রোফাইল এডিট করুন',
+    ORDER_MANAGEMENT: 'অর্ডার ম্যানেজমেন্ট',
+    POPULAR: 'জনপ্রিয়',
+    RECENTLY_VIEWED: 'সম্প্রতি দেখা পণ্য',
+    SEE_ALL: 'সবগুলো',
+    DELIVERY_ADDRESS: 'ডেলিভারি ঠিকানা',
+    CHANGE: 'পরিবর্তন',
+    PAYMENT_SUCCESS: 'অর্ডার সফল হয়েছে!',
+    TRACK_ORDER: 'ট্র্যাকিং করুন',
+    CANCEL_ORDER: 'বাতিল করুন',
+    HOME: 'হোম',
+    CART: 'কার্ট',
+    CATEGORY_NAV: 'ক্যাটাগরি',
+    MESSAGES: 'মেসেজ'
+  },
+  en: {
+    APP_NAME: 'Bismillah Supermarket',
+    SEARCH_HINT: 'Search for products...',
+    CATEGORIES: 'Popular Categories',
+    FEATURED: 'Best Deals & Offers',
+    ADD_TO_CART: 'Add to Cart',
+    CHECKOUT: 'Complete Order',
+    TOTAL: 'Total',
+    UNIT: 'Unit',
+    OFF: 'OFF',
+    EMPTY_CART: 'Your cart is empty',
+    ORDER_HISTORY: 'Order History',
+    PROFILE: 'My Profile',
+    GUIDE: 'Dev Guide',
+    PAYMENT_METHOD: 'Select Payment Method',
+    COD: 'Cash on Delivery',
+    BKASH: 'bKash',
+    NAGAD: 'Nagad',
+    ACCOUNT_NUMBER: 'Account Number',
+    TRX_ID: 'Transaction ID',
+    SETTINGS: 'Settings',
+    LANGUAGE: 'App Language',
+    NOTIFICATIONS: 'Notifications',
+    DARK_MODE: 'Dark Mode',
+    LOGOUT: 'Logout',
+    TAP_TO_LOGOUT: 'Tap to Logout',
+    CANCEL: 'Cancel',
+    SAVE: 'Save',
+    EDIT_PROFILE: 'Edit Profile',
+    ORDER_MANAGEMENT: 'Order Management',
+    POPULAR: 'Popular',
+    RECENTLY_VIEWED: 'Recently Viewed',
+    SEE_ALL: 'See All',
+    DELIVERY_ADDRESS: 'Delivery Address',
+    CHANGE: 'Change',
+    PAYMENT_SUCCESS: 'Order Successful!',
+    TRACK_ORDER: 'Track Order',
+    CANCEL_ORDER: 'Cancel Order',
+    HOME: 'Home',
+    CART: 'Cart',
+    CATEGORY_NAV: 'Category',
+    MESSAGES: 'Messages'
+  }
+};
+
+export const CATEGORIES: Category[] = [
+  { id: '1', name: 'সবজি', icon: '🥬', color: 'bg-emerald-100' },
+  { id: '2', name: 'ফলমূল', icon: '🍎', color: 'bg-red-100' },
+  { id: '3', name: 'মাছ-মাংস', icon: '🍗', color: 'bg-orange-100' },
+  { id: '4', name: 'মুদি বাজার', icon: '🥫', color: 'bg-blue-100' },
+  { id: '5', name: 'দুগ্ধজাত', icon: '🥛', color: 'bg-sky-100' },
+  { id: '6', name: 'বেকারি', icon: '🍞', color: 'bg-amber-100' },
+  { id: '7', name: 'স্কিন কেয়ার', icon: '🧴', color: 'bg-pink-100' },
+  { id: '8', name: 'প্রসাধন', icon: '🧼', color: 'bg-purple-100' },
+];
+
+export const DUMMY_PRODUCTS: Product[] = [
+  {
+    id: 'p1',
+    name: 'তাজা লাল আপেল (Premium)',
+    price: 280,
+    oldPrice: 340,
+    category: '2',
+    image: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6bcd6?auto=format&fit=crop&q=80&w=400',
+    unit: '১ কেজি',
+    stock: 50,
+    description: 'সেরা মানের আমদানিকৃত লাল আপেল। সরাসরি বাগান থেকে সংগৃহীত এবং রাসায়নিক মুক্ত।',
+    isActive: true
+  },
+  {
+    id: 'p2',
+    name: 'দেশি পেঁয়াজ',
+    price: 95,
+    oldPrice: 110,
+    category: '1',
+    image: 'https://images.unsplash.com/photo-1580201092675-a0a6a6cafbb1?auto=format&fit=crop&q=80&w=400',
+    unit: '১ কেজি',
+    stock: 100,
+    description: 'রান্নার জন্য প্রয়োজনীয় ফ্রেশ দেশি পেঁয়াজ।',
+    isActive: true
+  },
+  {
+    id: 'p3',
+    name: 'রুই মাছ (Medium Size)',
+    price: 420,
+    category: '3',
+    image: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&q=80&w=400',
+    unit: '১ কেজি',
+    stock: 20,
+    description: 'তাজা ও ফরমালিন মুক্ত রুই মাছ।',
+    isActive: true
+  },
+  {
+    id: 'p4',
+    name: 'চিনিগুড়া চাল (Brand)',
+    price: 145,
+    oldPrice: 165,
+    category: '4',
+    image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&q=80&w=400',
+    unit: '১ কেজি',
+    stock: 80,
+    description: 'সুগন্ধি এবং ঝরঝরে চিনিগুড়া চাল।',
+    isActive: true
+  },
+  {
+    id: 'p5',
+    name: 'মসুর ডাল (দেশি)',
+    price: 130,
+    oldPrice: 145,
+    category: '4',
+    image: 'https://images.unsplash.com/photo-1515942400420-2b98fed1f515?auto=format&fit=crop&q=80&w=400',
+    unit: '১ কেজি',
+    stock: 60,
+    description: 'উন্নত মানের পরিষ্কার দেশি মসুর ডাল।',
+    isActive: true
+  },
+  {
+    id: 'p6',
+    name: 'পন্ডস ফেসওয়াশ (Bright Beauty)',
+    price: 210,
+    oldPrice: 250,
+    category: '7',
+    image: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&q=80&w=400',
+    unit: '১০০ গ্রাম',
+    stock: 30,
+    description: 'ত্বক উজ্জ্বল করতে সাহায্য করে এবং গভীর থেকে পরিষ্কার করে।',
+    isActive: true
+  },
+  {
+    id: 'p7',
+    name: 'নিভিয়া ময়েশ্চারাইজার',
+    price: 350,
+    category: '7',
+    image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=400',
+    unit: '২০০ মিলি',
+    stock: 25,
+    description: 'ত্বকের রুক্ষতা দূর করে এবং দীর্ঘক্ষণ আর্দ্র রাখে।',
+    isActive: true
+  },
+  {
+    id: 'p8',
+    name: 'ডোভ সাবান (Sensitive)',
+    price: 90,
+    oldPrice: 105,
+    category: '8',
+    image: 'https://images.unsplash.com/photo-1600857062241-98e5dba7f214?auto=format&fit=crop&q=80&w=400',
+    unit: '১ পিস',
+    stock: 120,
+    description: 'ত্বককে কোমল এবং মোলায়েম রাখে।',
+    isActive: true
+  }
+];
+
+export const DUMMY_ORDERS: Order[] = [
+  { 
+    id: 'ORD-5421', 
+    date: '১২ মে, ২০২৪', 
+    total: 1250, 
+    status: 'DELIVERED', 
+    itemsCount: 5,
+    paymentMethod: 'COD',
+    items: [
+      { name: 'তাজা লাল আপেল', quantity: 2, price: 560 },
+      { name: 'দেশি পেঁয়াজ', quantity: 1, price: 95 },
+      { name: 'চিনিগুড়া চাল', quantity: 2, price: 290 }
+    ]
+  }
+];

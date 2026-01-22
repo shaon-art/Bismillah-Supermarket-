@@ -1,0 +1,8 @@
+{
+  "name": "Bismillah Supermarket Prototype",
+  "description": "A modern grocery shopping application prototype with Bangla support, featuring product categories, cart management, and a comprehensive developer guideline for Android implementation.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
