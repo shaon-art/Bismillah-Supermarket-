@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Product, Review, Category, SystemSettings } from '../types';
 import { TRANSLATIONS } from '../constants';
@@ -48,6 +47,9 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
   const displayPrice = Math.round(product.price * (1 - discount/100));
   const hasOffer = settings.globalDiscountEnabled && settings.globalDiscountPercentage > 0;
   const shownOldPrice = hasOffer ? product.price : product.oldPrice;
+  const individualDiscount = (!hasOffer && product.oldPrice && product.oldPrice > product.price) 
+        ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100) 
+        : 0;
 
   const handleSubmitReview = (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,6 +127,12 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
              Special {settings.globalDiscountPercentage}% Offer Active
            </div>
         )}
+        
+        {!hasOffer && individualDiscount > 0 && (
+           <div className="absolute bottom-4 left-6 bg-orange-500 text-white text-[10px] font-black px-4 py-2 rounded-full shadow-2xl z-10 tracking-widest uppercase">
+             {individualDiscount}% {t.OFF}
+           </div>
+        )}
       </div>
 
       <div className="flex-1 p-6 space-y-8">
@@ -141,7 +149,7 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
           
           <div className="flex items-baseline gap-3 mt-4">
             <span className="text-3xl font-black text-green-700 dark:text-green-400">৳{displayPrice}</span>
-            {shownOldPrice && <span className="text-gray-300 dark:text-gray-600 line-through text-lg font-bold">৳{shownOldPrice}</span>}
+            {shownOldPrice && shownOldPrice > displayPrice && <span className="text-gray-300 dark:text-gray-600 line-through text-lg font-bold">৳{shownOldPrice}</span>}
           </div>
         </section>
 

@@ -17,12 +17,18 @@
             --primary-dark: #15803d;
             --secondary: #f97316;
         }
+        /* Strict prevention of pull-to-refresh behaviors */
         html, body, #root {
             height: 100%;
             width: 100%;
-            overflow: hidden; /* Prevent pull-to-refresh and body scroll */
-            overscroll-behavior: none;
+            overflow: hidden; 
+            overscroll-behavior: none !important;
+            overscroll-behavior-y: none !important;
             -webkit-tap-highlight-color: transparent;
+            /* position: fixed helps prevent body scroll chaining on some mobile browsers */
+            position: fixed; 
+            top: 0;
+            left: 0;
         }
         body {
             font-family: 'Hind Siliguri', sans-serif;
@@ -60,11 +66,11 @@
 <script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
     "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
     "vite": "https://esm.sh/vite@^7.3.1",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
   }
 }

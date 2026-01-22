@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { User } from '../types';
 
@@ -11,6 +10,7 @@ const UserManagementScreen: React.FC<UserManagementScreenProps> = ({ onBack, lan
   const [search, setSearch] = useState('');
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // Toggle password visibility
   
   // Load users from local storage
   const users: User[] = useMemo(() => {
@@ -64,6 +64,7 @@ const UserManagementScreen: React.FC<UserManagementScreenProps> = ({ onBack, lan
 
   const handleOpenEdit = (user: User) => {
     setEditingUser({ ...user });
+    setShowPassword(false); // Reset visibility
     setShowEditModal(true);
   };
 
@@ -84,11 +85,15 @@ const UserManagementScreen: React.FC<UserManagementScreenProps> = ({ onBack, lan
     }
   };
 
-  const getJoinedDate = (id: string) => {
-      if (!id.startsWith('u-')) return lang === 'bn' ? 'অজানা' : 'Unknown';
-      const timestamp = parseInt(id.split('-')[1]);
-      const date = new Date(timestamp);
-      return date.toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+  const generateRandomPassword = () => {
+    if (!editingUser) return;
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$";
+    let pass = "";
+    for (let i = 0; i < 8; i++) {
+        pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setEditingUser({ ...editingUser, password: pass });
+    setShowPassword(true);
   };
 
   return (
@@ -154,6 +159,7 @@ const UserManagementScreen: React.FC<UserManagementScreenProps> = ({ onBack, lan
                    <button 
                     onClick={() => handleOpenEdit(user)}
                     className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center active:scale-90 transition-transform"
+                    title={lang === 'bn' ? 'এডিট করুন' : 'Edit User'}
                   >
                     ✏️
                   </button>
@@ -162,12 +168,14 @@ const UserManagementScreen: React.FC<UserManagementScreenProps> = ({ onBack, lan
                     className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm transition-all ${
                       user.isAdmin ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-400'
                     }`}
+                    title={lang === 'bn' ? 'অ্যাডমিন স্ট্যাটাস' : 'Toggle Admin'}
                   >
                     🛡️
                   </button>
                   <button 
                     onClick={() => handleDeleteUser(user.id)}
                     className="w-9 h-9 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-500 flex items-center justify-center active:scale-90 transition-transform"
+                    title={lang === 'bn' ? 'মুছে ফেলুন' : 'Delete User'}
                   >
                     🗑️
                   </button>
@@ -180,7 +188,7 @@ const UserManagementScreen: React.FC<UserManagementScreenProps> = ({ onBack, lan
 
       {showEditModal && editingUser && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-fadeIn bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[32px] p-6 shadow-2xl relative border border-white/10">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[32px] p-6 shadow-2xl relative border border-white/10 overflow-y-auto max-h-[85vh] no-scrollbar">
             <h3 className="text-lg font-black text-gray-900 dark:text-white mb-6">
               {lang === 'bn' ? 'প্রোফাইল তথ্য পরিবর্তন' : 'Edit Member Profile'}
             </h3>
@@ -191,7 +199,7 @@ const UserManagementScreen: React.FC<UserManagementScreenProps> = ({ onBack, lan
                   type="text" 
                   value={editingUser.name}
                   onChange={(e) => setEditingUser({...editingUser, name: e.target.value})}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-bold dark:text-white"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-bold dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
               <div className="space-y-1">
@@ -200,21 +208,46 @@ const UserManagementScreen: React.FC<UserManagementScreenProps> = ({ onBack, lan
                   type="tel" 
                   value={editingUser.phone}
                   onChange={(e) => setEditingUser({...editingUser, phone: e.target.value})}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-bold dark:text-white"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-bold dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">{lang === 'bn' ? 'পাসওয়ার্ড' : 'Password'}</label>
-                <input 
-                  type="text" 
-                  value={editingUser.password || ''}
-                  onChange={(e) => setEditingUser({...editingUser, password: e.target.value})}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-bold dark:text-white"
-                />
+              
+              {/* Security Section */}
+              <div className="pt-2 border-t border-gray-100 dark:border-slate-800">
+                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                    {lang === 'bn' ? 'নিরাপত্তা ও পাসওয়ার্ড' : 'Security & Password'}
+                 </p>
+                 <div className="space-y-1 relative">
+                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">{lang === 'bn' ? 'নতুন পাসওয়ার্ড সেট করুন' : 'Set New Password'}</label>
+                    <div className="relative">
+                        <input 
+                          type={showPassword ? "text" : "password"}
+                          value={editingUser.password || ''}
+                          onChange={(e) => setEditingUser({...editingUser, password: e.target.value})}
+                          className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl pl-4 pr-10 py-3 text-sm font-bold dark:text-white outline-none focus:ring-2 focus:ring-red-500/20"
+                          placeholder="••••••"
+                        />
+                        <button 
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        >
+                          {showPassword ? '🙈' : '👁️'}
+                        </button>
+                    </div>
+                 </div>
+                 <div className="flex justify-end mt-2">
+                    <button 
+                      onClick={generateRandomPassword}
+                      className="text-[10px] font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
+                      {lang === 'bn' ? 'র‍্যান্ডম পাসওয়ার্ড' : 'Generate Random'}
+                    </button>
+                 </div>
               </div>
+
               <div className="flex gap-3 pt-4">
                 <button onClick={() => setShowEditModal(false)} className="flex-1 py-4 text-xs font-black text-gray-400 uppercase tracking-widest bg-slate-100 dark:bg-slate-800 rounded-2xl">{lang === 'bn' ? 'বাতিল' : 'Cancel'}</button>
-                <button onClick={saveEditedUser} className="flex-1 py-4 text-xs font-black text-white uppercase tracking-widest bg-blue-600 rounded-2xl shadow-lg shadow-blue-100 dark:shadow-none">{lang === 'bn' ? 'সেভ করুন' : 'Save Info'}</button>
+                <button onClick={saveEditedUser} className="flex-1 py-4 text-xs font-black text-white uppercase tracking-widest bg-blue-600 rounded-2xl shadow-lg shadow-blue-100 dark:shadow-none active:scale-95 transition-all">{lang === 'bn' ? 'সেভ করুন' : 'Save Info'}</button>
               </div>
             </div>
           </div>

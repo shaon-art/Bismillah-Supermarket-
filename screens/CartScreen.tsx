@@ -37,7 +37,7 @@ const CartScreen: React.FC<CartScreenProps> = ({
   const [showCopyTooltip, setShowCopyTooltip] = useState(false);
   const t = TRANSLATIONS[lang];
   
-  const PAYMENT_NUMBER = '01978501415';
+  const PAYMENT_NUMBER = '01799261218';
 
   const [selectedAddrId, setSelectedAddrId] = useState(addresses.find(a => a.isDefault)?.id || addresses[0]?.id || '');
 

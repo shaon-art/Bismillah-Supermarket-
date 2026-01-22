@@ -1,6 +1,7 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { TRANSLATIONS, COLORS, DUMMY_PRODUCTS, DUMMY_ORDERS, CATEGORIES } from './constants';
-import { Screen, CartItem, Product, Order, Category, PaymentMethod, Address, OrderStatus, User, SystemSettings } from './types';
+import { Screen, CartItem, Product, Order, Category, PaymentMethod, Address, OrderStatus, User, SystemSettings, ChatMessage } from './types';
 import HomeScreen from './screens/HomeScreen';
 import CategoryScreen from './screens/CategoryScreen';
 import CartScreen from './screens/CartScreen';
@@ -17,6 +18,7 @@ import ProductManagementScreen from './screens/ProductManagementScreen';
 import UserManagementScreen from './screens/UserManagementScreen';
 import AdminControlScreen from './screens/AdminControlScreen';
 import CategoryManagementScreen from './screens/CategoryManagementScreen';
+import MessagingScreen from './screens/MessagingScreen';
 import { GoogleGenAI } from "@google/genai";
 import { storage } from './utils/storage';
 
@@ -76,111 +78,8 @@ const SplashScreen: React.FC<{ onFinish: () => void, logo: string }> = ({ onFini
   );
 };
 
-interface ChatMessage {
-  id: string;
-  text: string;
-  sender: 'user' | 'support';
-  timestamp: Date;
-}
-
-const MessagingScreen: React.FC<{ 
-  messages: ChatMessage[];
-  onSendMessage: (text: string) => void;
-  isTyping: boolean;
-  onBack: () => void; 
-  lang: 'bn' | 'en' 
-}> = ({ messages, onSendMessage, isTyping, onBack, lang }) => {
-  const [inputText, setInputText] = useState('');
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages, isTyping]);
-
-  const handleSend = () => {
-    if (!inputText.trim()) return;
-    onSendMessage(inputText);
-    setInputText('');
-  };
-
-  return (
-    <div className="animate-fadeIn h-full bg-gray-50 dark:bg-slate-950 flex flex-col transition-colors duration-300">
-      <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg px-5 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center gap-4 sticky top-0 z-40">
-        <button onClick={onBack} className="w-10 h-10 rounded-full bg-gray-50 dark:bg-slate-800 flex items-center justify-center text-gray-600 dark:text-gray-400 active:scale-90 transition-transform">
-          <span className="text-xl">←</span>
-        </button>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center text-xl relative shadow-inner">
-            🤖
-          </div>
-          <div>
-            <h2 className="text-sm font-black text-gray-900 dark:text-white leading-none">Smart Assistant</h2>
-            <div className="flex items-center gap-1 mt-1">
-              <span className="text-[8px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest bg-orange-100 dark:bg-orange-900/20 px-1.5 py-0.5 rounded">AI Active</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-4 no-scrollbar">
-        {messages.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} animate-fadeIn`}>
-            <div className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-sm ${
-              msg.sender === 'user' 
-                ? 'bg-green-600 text-white rounded-tr-none' 
-                : 'bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-200 rounded-tl-none border border-gray-100 dark:border-slate-800 backdrop-blur-sm'
-            }`}>
-              <p className="text-sm font-medium leading-relaxed whitespace-pre-line">{msg.text}</p>
-              <p className={`text-[8px] mt-1 font-bold uppercase opacity-60 ${msg.sender === 'user' ? 'text-right' : 'text-left'}`}>
-                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </p>
-            </div>
-          </div>
-        ))}
-        {isTyping && (
-          <div className="flex justify-start">
-            <div className="bg-white/50 dark:bg-slate-900/50 backdrop-blur rounded-2xl px-4 py-3 border border-gray-100 dark:border-slate-800">
-              <div className="flex gap-1.5">
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-bounce"></div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="p-4 bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 transition-colors">
-        <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800 rounded-2xl p-2 border border-gray-100 dark:border-slate-700 shadow-inner">
-          <input 
-            type="text" 
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            placeholder={lang === 'bn' ? 'মেসেজ লিখুন...' : 'Type a message...'}
-            className="flex-1 bg-transparent border-none outline-none px-3 py-2 text-sm font-bold dark:text-white"
-          />
-          <button 
-            onClick={handleSend}
-            disabled={!inputText.trim() || isTyping}
-            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-              !inputText.trim() || isTyping 
-                ? 'bg-gray-200 text-gray-400' 
-                : 'bg-green-600 text-white shadow-lg active:scale-90'
-            }`}
-          >
-            ✈️
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const App: React.FC = () => {
-  // --- Persistent State Initialization using storage utility ---
+  // --- Persistent State Initialization ---
   const [currentUser, setCurrentUser] = useState<User | null>(() => storage.load('currentUser', null));
   const [currentScreen, setCurrentScreen] = useState<Screen>(() => {
     const user = storage.load('currentUser', null);
@@ -188,6 +87,7 @@ const App: React.FC = () => {
     return storage.load('currentScreen', 'HOME');
   });
   
+  // Data States
   const [cart, setCart] = useState<CartItem[]>(() => storage.load('cart', []));
   const [favorites, setFavorites] = useState<string[]>(() => storage.load('favorites', []));
   const [recentlyViewedIds, setRecentlyViewedIds] = useState<string[]>(() => storage.load('recentlyViewedIds', []));
@@ -205,11 +105,11 @@ const App: React.FC = () => {
       isDefault: true
     }
   ]));
-
   const [systemSettings, setSystemSettings] = useState<SystemSettings>(() => storage.getSettings());
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [lastServerUpdate, setLastServerUpdate] = useState(new Date());
   
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(() => storage.load('selectedProduct', null));
   const [selectedOrderForTracking, setSelectedOrderForTracking] = useState<Order | null>(() => storage.load('selectedOrderForTracking', null));
@@ -221,11 +121,61 @@ const App: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
+  
+  // New State for Category Navigation
+  const [targetCategory, setTargetCategory] = useState<string | null>(null);
 
   const t = TRANSLATIONS[language];
 
+  // --- Real-time Sync Engine ---
   useEffect(() => {
-    // Initialise Persistent Storage on Boot
+    // 1. Subscribe to storage events (Cross-tab & Same-tab)
+    const unsubscribe = storage.subscribe((key, newValue) => {
+      if (!newValue) return;
+      
+      console.log(`[Sync Engine] Update received for: ${key}`);
+      
+      // Flash sync indicator
+      setIsSyncing(true);
+      setTimeout(() => setIsSyncing(false), 800);
+      setLastServerUpdate(new Date());
+
+      // Update Local State based on key
+      switch (key) {
+        case 'products_v1': setProducts(newValue); break;
+        case 'categories_v1': setCategories(newValue); break;
+        case 'orders_v1': setOrders(newValue); break;
+        case 'systemSettings_v3': setSystemSettings(newValue); break;
+        // Add other keys if needed to be synced across users immediately (e.g. maintenance mode)
+      }
+    });
+
+    // 2. Polling for "Server" updates (Simulates fetching from backend)
+    const intervalId = setInterval(() => {
+      // In a real app, this would fetch('/api/settings')
+      // Here we re-read storage to ensure we catch any updates we might have missed
+      const latestSettings = storage.getSettings();
+      if (JSON.stringify(latestSettings) !== JSON.stringify(systemSettings)) {
+        setSystemSettings(latestSettings);
+        setIsSyncing(true);
+        setTimeout(() => setIsSyncing(false), 500);
+      }
+      
+      const latestProducts = storage.getProducts();
+      if (JSON.stringify(latestProducts) !== JSON.stringify(products)) {
+         setProducts(latestProducts);
+      }
+      // Note: We don't strictly poll everything to save resources in this prototype
+    }, 2000); // Check every 2 seconds
+
+    return () => {
+      unsubscribe();
+      clearInterval(intervalId);
+    };
+  }, [systemSettings, products]); // Deps indicate what we are comparing against
+
+  // --- Initial Setup ---
+  useEffect(() => {
     storage.init().then(persisted => {
       if (persisted) console.log("Device storage persistence active");
     });
@@ -248,27 +198,22 @@ const App: React.FC = () => {
     };
   }, []);
 
-  // --- Auto-Save to Storage (The "Soldier" protecting data) ---
+  // --- User Action Persisters ---
+  // Note: We only save user-specific data here. Admin data is saved via explicit handlers.
   useEffect(() => {
-    if (!systemSettings.autoSyncEnabled) return;
-    
-    storage.save('products_v1', products);
-    storage.save('categories_v1', categories);
-    storage.save('orders_v1', orders);
-    storage.save('addresses_v1', addresses);
     storage.save('cart', cart);
     storage.save('favorites', favorites);
     storage.save('recentlyViewedIds', recentlyViewedIds);
-    storage.save('systemSettings_v3', systemSettings);
+    storage.save('addresses_v1', addresses); // User addresses
     
+    // UI State
     storage.save('currentScreen', currentScreen);
     storage.save('selectedProduct', selectedProduct);
     storage.save('selectedOrderForTracking', selectedOrderForTracking);
     
-    setIsSyncing(true);
-    const timer = setTimeout(() => setIsSyncing(false), 800);
-    return () => clearTimeout(timer);
-  }, [products, categories, orders, addresses, cart, favorites, recentlyViewedIds, systemSettings, currentScreen, selectedProduct, selectedOrderForTracking]);
+    storage.save('notificationsEnabled', notificationsEnabled);
+    storage.save('soundsEnabled', soundsEnabled);
+  }, [cart, favorites, recentlyViewedIds, addresses, currentScreen, selectedProduct, selectedOrderForTracking, notificationsEnabled, soundsEnabled]);
 
   useEffect(() => {
     localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
@@ -276,6 +221,57 @@ const App: React.FC = () => {
     if (isDarkMode) document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
   }, [isDarkMode, language]);
+
+  // --- Handlers (Modified to use storage.save which triggers sync) ---
+  
+  const handleUpdateSettings = (newSettings: SystemSettings) => {
+    // Optimistic update
+    setSystemSettings(newSettings);
+    // Persist & Broadcast
+    storage.save('systemSettings_v3', newSettings);
+  };
+
+  const handleUpdateProduct = (updatedProduct: Product) => {
+    const newProducts = products.map(p => p.id === updatedProduct.id ? updatedProduct : p);
+    setProducts(newProducts);
+    storage.save('products_v1', newProducts);
+  };
+
+  const handleAddProduct = (newProduct: Product) => {
+    const newProducts = [...products, newProduct];
+    setProducts(newProducts);
+    storage.save('products_v1', newProducts);
+  };
+
+  const handleDeleteProduct = (id: string) => {
+    const newProducts = products.filter(p => p.id !== id);
+    setProducts(newProducts);
+    storage.save('products_v1', newProducts);
+    if (currentScreen === 'PRODUCT_DETAIL') setCurrentScreen('HOME');
+  };
+  
+  const handleAddCategory = (newCat: Category) => {
+      const newCats = [...categories, newCat];
+      setCategories(newCats);
+      storage.save('categories_v1', newCats);
+  };
+  
+  const handleUpdateCategory = (updatedCat: Category) => {
+      const newCats = categories.map(c => c.id === updatedCat.id ? updatedCat : c);
+      setCategories(newCats);
+      storage.save('categories_v1', newCats);
+  };
+  
+  const handleDeleteCategory = (id: string) => {
+      const newCats = categories.filter(c => c.id !== id);
+      setCategories(newCats);
+      storage.save('categories_v1', newCats);
+  };
+  
+  const handleUpdateOrders = (newOrders: Order[]) => {
+      setOrders(newOrders);
+      storage.save('orders_v1', newOrders);
+  };
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);
@@ -349,30 +345,35 @@ const App: React.FC = () => {
     setCurrentScreen('PRODUCT_DETAIL'); 
   };
 
+  const handleCategoryClick = (categoryId: string) => {
+    setTargetCategory(categoryId);
+    setCurrentScreen('CATEGORIES');
+  };
+
   const renderScreen = () => {
     const adminScreens: Screen[] = ['ADMIN_CONTROL', 'PRODUCT_MANAGEMENT', 'CATEGORY_MANAGEMENT', 'USER_MANAGEMENT'];
     if (adminScreens.includes(currentScreen) && !currentUser?.isAdmin) {
-      return <HomeScreen products={products} categories={categories} recentlyViewed={products.filter(p => recentlyViewedIds.includes(p.id))} onProductClick={handleProductClick} onAddToCart={addToCart} onNavigate={setCurrentScreen} lang={language} settings={systemSettings} />;
+      return <HomeScreen products={products} categories={categories} recentlyViewed={products.filter(p => recentlyViewedIds.includes(p.id))} onProductClick={handleProductClick} onAddToCart={addToCart} onNavigate={setCurrentScreen} onCategoryClick={handleCategoryClick} lang={language} settings={systemSettings} />;
     }
 
     switch (currentScreen) {
       case 'AUTH': return <AuthScreen onLogin={handleLogin} />;
-      case 'HOME': return <HomeScreen products={products} categories={categories} recentlyViewed={products.filter(p => recentlyViewedIds.includes(p.id))} onProductClick={handleProductClick} onAddToCart={addToCart} onNavigate={setCurrentScreen} lang={language} settings={systemSettings} />;
-      case 'CATEGORIES': return <CategoryScreen products={products} categories={categories} onProductClick={handleProductClick} onAddToCart={addToCart} settings={systemSettings} />;
-      case 'CART': return <CartScreen cart={cart} addresses={addresses} onUpdateQty={(id, d) => setCart(p => p.map(i => i.id === id ? {...i, quantity: Math.max(1, i.quantity+d)} : i))} onRemove={id => setCart(p => p.filter(i => i.id !== id))} onClearCart={() => setCart([])} onPlaceOrder={(m, d, a) => { setOrders(p => [{ id: `ORD-${Date.now()}`, date: 'Just now', total: cart.reduce((a,c)=>a+(c.price*c.quantity),0)+systemSettings.deliveryCharge, status: 'PENDING', itemsCount: cart.length, items: cart.map(i=>({name:i.name, quantity:i.quantity, price:i.price})), paymentMethod: m, deliveryAddress: a }, ...p]); setCart([]); setCurrentScreen('ORDERS'); }} onManageAddresses={() => setCurrentScreen('ADDRESS_LIST')} lang={language} isStoreOpen={systemSettings.isStoreOpen} deliveryCharge={systemSettings.deliveryCharge} supportPhone={systemSettings.supportPhone} />;
+      case 'HOME': return <HomeScreen products={products} categories={categories} recentlyViewed={products.filter(p => recentlyViewedIds.includes(p.id))} onProductClick={handleProductClick} onAddToCart={addToCart} onNavigate={setCurrentScreen} onCategoryClick={handleCategoryClick} lang={language} settings={systemSettings} />;
+      case 'CATEGORIES': return <CategoryScreen products={products} categories={categories} onProductClick={handleProductClick} onAddToCart={addToCart} settings={systemSettings} initialCategoryId={targetCategory || undefined} />;
+      case 'CART': return <CartScreen cart={cart} addresses={addresses} onUpdateQty={(id, d) => setCart(p => p.map(i => i.id === id ? {...i, quantity: Math.max(1, i.quantity+d)} : i))} onRemove={id => setCart(p => p.filter(i => i.id !== id))} onClearCart={() => setCart([])} onPlaceOrder={(m, d, a) => { const newOrders = [{ id: `ORD-${Date.now()}`, date: 'Just now', total: cart.reduce((a,c)=>a+(c.price*c.quantity),0)+systemSettings.deliveryCharge, status: 'PENDING' as OrderStatus, itemsCount: cart.length, items: cart.map(i=>({name:i.name, quantity:i.quantity, price:i.price})), paymentMethod: m, deliveryAddress: a }, ...orders]; handleUpdateOrders(newOrders); setCart([]); setCurrentScreen('ORDERS'); }} onManageAddresses={() => setCurrentScreen('ADDRESS_LIST')} lang={language} isStoreOpen={systemSettings.isStoreOpen} deliveryCharge={systemSettings.deliveryCharge} supportPhone={systemSettings.supportPhone} />;
       case 'PROFILE': return <ProfileScreen currentUser={currentUser!} isAdmin={currentUser!.isAdmin} onLogout={handleLogout} onUpdateUser={u => {setCurrentUser(u); storage.save('currentUser', u);}} onNavigate={setCurrentScreen} lang={language} />;
-      case 'MESSAGES': return <MessagingScreen messages={messages} onSendMessage={handleSendMessage} isTyping={isTyping} onBack={() => setCurrentScreen('HOME')} lang={language} />;
-      case 'ORDERS': return <OrderListScreen orders={orders} isAdmin={currentUser!.isAdmin} onBack={() => setCurrentScreen('PROFILE')} onCancelOrder={id => setOrders(p=>p.map(o=>o.id===id?{...o,status:'CANCELED'}:o))} onAcceptOrder={id => setOrders(p=>p.map(o=>o.id===id?{...o,status:'ACCEPTED'}:o))} onTrackOrder={o => {setSelectedOrderForTracking(o); setCurrentScreen('TRACKING');}} lang={language} deliveryCharge={systemSettings.deliveryCharge} />;
-      case 'TRACKING': return selectedOrderForTracking ? <TrackingScreen order={selectedOrderForTracking} isAdmin={currentUser!.isAdmin} onBack={() => setCurrentScreen('ORDERS')} onUpdateStatus={(id, s) => setOrders(p=>p.map(o=>o.id===id?{...o,status:s}:o))} /> : null;
+      case 'MESSAGES': return <MessagingScreen messages={messages} onSendMessage={handleSendMessage} isTyping={isTyping} onBack={() => setCurrentScreen('HOME')} lang={language} settings={systemSettings} />;
+      case 'ORDERS': return <OrderListScreen orders={orders} isAdmin={currentUser!.isAdmin} onBack={() => setCurrentScreen('PROFILE')} onCancelOrder={id => handleUpdateOrders(orders.map(o=>o.id===id?{...o,status:'CANCELED'}:o))} onAcceptOrder={id => handleUpdateOrders(orders.map(o=>o.id===id?{...o,status:'ACCEPTED'}:o))} onTrackOrder={o => {setSelectedOrderForTracking(o); setCurrentScreen('TRACKING');}} lang={language} deliveryCharge={systemSettings.deliveryCharge} />;
+      case 'TRACKING': return selectedOrderForTracking ? <TrackingScreen order={selectedOrderForTracking} isAdmin={currentUser!.isAdmin} onBack={() => setCurrentScreen('ORDERS')} onUpdateStatus={(id, s) => handleUpdateOrders(orders.map(o=>o.id===id?{...o,status:s}:o))} /> : null;
       case 'SETTINGS': return <SettingsScreen isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} language={language} onSetLanguage={setLanguage} notifications={notificationsEnabled} onToggleNotifications={() => setNotificationsEnabled(!notificationsEnabled)} sounds={soundsEnabled} onToggleSounds={() => setSoundsEnabled(!soundsEnabled)} onBack={() => setCurrentScreen('PROFILE')} onLogout={handleLogout} isAdmin={currentUser?.isAdmin} onNavigate={setCurrentScreen} />;
-      case 'PRODUCT_DETAIL': return selectedProduct ? <ProductDetailScreen product={selectedProduct} isAdmin={currentUser!.isAdmin} categories={categories} isFavorite={favorites.includes(selectedProduct.id)} onToggleFavorite={() => setFavorites(p=>p.includes(selectedProduct.id)?p.filter(i=>i!==selectedProduct.id):[...p,selectedProduct.id])} onAddToCart={addToCart} onBack={() => setCurrentScreen('HOME')} onUpdateProduct={p=>setProducts(pr=>pr.map(i=>i.id===p.id?p:i))} onDeleteProduct={id=>{setProducts(p=>p.filter(i=>i.id!==id)); setCurrentScreen('HOME');}} lang={language} settings={systemSettings} /> : null;
-      case 'ADMIN_CONTROL': return <AdminControlScreen settings={systemSettings} products={products} orders={orders} onUpdateSettings={setSystemSettings} onBack={() => setCurrentScreen('PROFILE')} onNavigate={setCurrentScreen} lang={language} />;
-      case 'PRODUCT_MANAGEMENT': return <ProductManagementScreen products={products} categories={categories} onBack={() => setCurrentScreen('ADMIN_CONTROL')} onAddProduct={p=>setProducts(pr=>[...pr,p])} onUpdateProduct={p=>setProducts(pr=>pr.map(i=>i.id===p.id?p:i))} onDeleteProduct={id=>setProducts(p=>p.filter(i=>i.id!==id))} onNavigate={setCurrentScreen} lang={language} />;
-      case 'CATEGORY_MANAGEMENT': return <CategoryManagementScreen categories={categories} onBack={() => setCurrentScreen('ADMIN_CONTROL')} onAddCategory={c=>setCategories(p=>[...p,c])} onUpdateCategory={c=>setCategories(p=>p.map(i=>i.id===c.id?c:i))} onDeleteCategory={id=>setCategories(p=>p.filter(i=>i.id!==id))} lang={language} />;
+      case 'PRODUCT_DETAIL': return selectedProduct ? <ProductDetailScreen product={selectedProduct} isAdmin={currentUser!.isAdmin} categories={categories} isFavorite={favorites.includes(selectedProduct.id)} onToggleFavorite={() => setFavorites(p=>p.includes(selectedProduct.id)?p.filter(i=>i!==selectedProduct.id):[...p,selectedProduct.id])} onAddToCart={addToCart} onBack={() => setCurrentScreen('HOME')} onUpdateProduct={handleUpdateProduct} onDeleteProduct={handleDeleteProduct} lang={language} settings={systemSettings} /> : null;
+      case 'ADMIN_CONTROL': return <AdminControlScreen settings={systemSettings} products={products} orders={orders} onUpdateSettings={handleUpdateSettings} onBack={() => setCurrentScreen('PROFILE')} onNavigate={setCurrentScreen} lang={language} />;
+      case 'PRODUCT_MANAGEMENT': return <ProductManagementScreen products={products} categories={categories} onBack={() => setCurrentScreen('ADMIN_CONTROL')} onAddProduct={handleAddProduct} onUpdateProduct={handleUpdateProduct} onDeleteProduct={handleDeleteProduct} onNavigate={setCurrentScreen} lang={language} />;
+      case 'CATEGORY_MANAGEMENT': return <CategoryManagementScreen categories={categories} onBack={() => setCurrentScreen('ADMIN_CONTROL')} onAddCategory={handleAddCategory} onUpdateCategory={handleUpdateCategory} onDeleteCategory={handleDeleteCategory} lang={language} />;
       case 'USER_MANAGEMENT': return <UserManagementScreen onBack={() => setCurrentScreen('ADMIN_CONTROL')} lang={language} />;
       case 'ADDRESS_LIST': return <AddressListScreen addresses={addresses} onBack={() => setCurrentScreen('PROFILE')} onAddAddress={a=>setAddresses(p=>[...p,a])} onUpdateAddress={a=>setAddresses(p=>p.map(i=>i.id===a.id?a:i))} onDeleteAddress={id=>setAddresses(p=>p.filter(i=>i.id!==id))} onSetDefault={id=>setAddresses(p=>p.map(i=>({...i,isDefault:i.id===id})))} />;
       case 'COUPONS': return <CouponScreen onBack={() => setCurrentScreen('HOME')} />;
-      default: return <HomeScreen products={products} categories={categories} recentlyViewed={[]} onProductClick={handleProductClick} onAddToCart={addToCart} onNavigate={setCurrentScreen} lang={language} settings={systemSettings} />;
+      default: return <HomeScreen products={products} categories={categories} recentlyViewed={[]} onProductClick={handleProductClick} onAddToCart={addToCart} onNavigate={setCurrentScreen} onCategoryClick={handleCategoryClick} lang={language} settings={systemSettings} />;
     }
   };
 
@@ -390,10 +391,15 @@ const App: React.FC = () => {
           <header className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl px-5 py-3 sticky top-0 z-50 flex justify-between items-center border-b border-green-50 dark:border-green-900/20 shrink-0">
             <Logo settings={systemSettings} onClick={() => setCurrentScreen('HOME')} />
             <div className="flex gap-2 items-center">
-              {isSyncing && <span className="text-[8px] font-black text-green-500 uppercase animate-pulse">Syncing</span>}
+              {isSyncing && <span className="text-[8px] font-black text-green-500 uppercase animate-pulse">Updated</span>}
               <button onClick={() => window.location.reload()} className="w-10 h-10 bg-gray-50 dark:bg-slate-800 text-gray-500 rounded-2xl flex items-center justify-center active:scale-95 transition-transform" title="Refresh">🔄</button>
               <button onClick={() => setCurrentScreen('SETTINGS')} className="w-10 h-10 bg-gray-50 dark:bg-slate-800 text-gray-500 rounded-2xl flex items-center justify-center">⚙️</button>
-              <button onClick={() => setCurrentScreen('MESSAGES')} className="w-10 h-10 bg-green-50 dark:bg-green-900/20 text-green-600 rounded-2xl flex items-center justify-center">💬</button>
+              <button 
+                onClick={() => setCurrentScreen('MESSAGES')} 
+                className="w-10 h-10 bg-gradient-to-tr from-green-600 to-green-400 text-white rounded-full flex items-center justify-center shadow-lg shadow-green-200 dark:shadow-none active:scale-95 transition-transform"
+              >
+                💬
+              </button>
             </div>
           </header>
         )}

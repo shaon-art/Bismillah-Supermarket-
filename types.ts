@@ -104,4 +104,11 @@ export interface TrackingStep {
   icon: string;
 }
 
+export interface ChatMessage {
+  id: string;
+  text: string;
+  sender: 'user' | 'support';
+  timestamp: Date;
+}
+
 export type Screen = 'AUTH' | 'HOME' | 'CATEGORIES' | 'CART' | 'PROFILE' | 'GUIDE' | 'PRODUCT_DETAIL' | 'ORDERS' | 'TRACKING' | 'SETTINGS' | 'COUPONS' | 'ADDRESS_LIST' | 'MESSAGES' | 'PRODUCT_MANAGEMENT' | 'USER_MANAGEMENT' | 'ADMIN_CONTROL' | 'CATEGORY_MANAGEMENT';

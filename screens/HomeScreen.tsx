@@ -10,12 +10,21 @@ interface HomeScreenProps {
   onProductClick: (p: Product) => void;
   onAddToCart: (p: Product) => void;
   onNavigate: (screen: Screen) => void;
+  onCategoryClick: (categoryId: string) => void;
   lang: 'bn' | 'en';
   settings: SystemSettings;
 }
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ products, categories, recentlyViewed, onProductClick, onAddToCart, onNavigate, lang, settings }) => {
+const HomeScreen: React.FC<HomeScreenProps> = ({ products, categories, recentlyViewed, onProductClick, onAddToCart, onNavigate, onCategoryClick, lang, settings }) => {
+  const [searchTerm, setSearchTerm] = useState('');
   const t = TRANSLATIONS[lang];
+
+  // Filter products based on search term
+  const filteredProducts = products.filter(product => 
+    product.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const isSearching = searchTerm.trim().length > 0;
 
   return (
     <div className="space-y-6 animate-fadeIn pb-6">
@@ -26,102 +35,147 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ products, categories, recentlyV
           <input 
             type="text" 
             placeholder={t.SEARCH_HINT}
-            className="w-full pl-11 pr-4 py-3 rounded-xl bg-gray-100 dark:bg-slate-900 border-none focus:ring-2 focus:ring-green-500/20 text-sm transition-all outline-none dark:text-white"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-11 pr-10 py-3 rounded-xl bg-gray-100 dark:bg-slate-900 border-none focus:ring-2 focus:ring-green-500/20 text-sm transition-all outline-none dark:text-white shadow-sm"
           />
-        </div>
-      </div>
-
-      {/* Modern Promo Banners */}
-      <div className="px-5">
-        <div className={`w-full h-36 rounded-2xl ${settings.globalDiscountEnabled ? 'bg-orange-600' : 'bg-green-600'} relative overflow-hidden flex items-center shadow-lg shadow-green-100 transition-colors duration-500`}>
-          <div className="pl-6 pr-4 z-10 w-2/3">
-            <h2 className="text-xl font-bold text-white leading-tight">
-              {settings.globalDiscountEnabled 
-                ? (lang === 'bn' ? `সবকিছুতে ${settings.globalDiscountPercentage}% ছাড়!` : `Flat ${settings.globalDiscountPercentage}% Off All!`)
-                : (lang === 'bn' ? 'সেরা ডিল!' : 'Best Deal!')
-              }
-            </h2>
-            <p className="text-white/80 text-xs mt-1">
-              {lang === 'bn' ? 'তাজা পণ্যের সমাহার নিয়ে আমরা আছি আপনার পাশে।' : 'Quality groceries delivered to your doorstep.'}
-            </p>
+          {isSearching && (
             <button 
-              onClick={() => onNavigate('COUPONS')}
-              className="mt-3 bg-white text-orange-700 text-[10px] font-bold px-4 py-1.5 rounded-full shadow-sm uppercase tracking-wide hover:bg-green-50 transition-colors"
+              onClick={() => setSearchTerm('')}
+              className="absolute inset-y-0 right-3 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors w-8 h-full"
             >
-              {lang === 'bn' ? 'অফার দেখুন' : 'View Offers'}
+              ✕
             </button>
-          </div>
-          <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=300" 
-               className="absolute right-[-20px] top-0 h-full w-1/2 object-cover opacity-60" alt="banner" />
+          )}
         </div>
       </div>
 
-      {/* Recently Viewed Section */}
-      {recentlyViewed.length > 0 && (
-        <section className="px-5">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <span className="text-sm">🕒</span> {lang === 'bn' ? 'সম্প্রতি দেখা পণ্য' : 'Recently Viewed'}
-            </h3>
-          </div>
-          <div className="flex overflow-x-auto pb-2 gap-3 no-scrollbar">
-            {recentlyViewed.map(product => {
-              const discount = settings.globalDiscountEnabled ? settings.globalDiscountPercentage : 0;
-              const displayPrice = Math.round(product.price * (1 - discount/100));
-              
-              return (
-                <div 
-                  key={`rv-${product.id}`} 
-                  onClick={() => onProductClick(product)}
-                  className="flex-shrink-0 w-28 group cursor-pointer"
+      {/* Hide Banner & Recent Items during search to focus on results */}
+      {!isSearching && (
+        <>
+          {/* Modern Promo Banners */}
+          <div className="px-5">
+            <div className={`w-full h-36 rounded-2xl ${settings.globalDiscountEnabled ? 'bg-orange-600' : 'bg-green-600'} relative overflow-hidden flex items-center shadow-lg shadow-green-100 dark:shadow-none transition-colors duration-500`}>
+              <div className="pl-6 pr-4 z-10 w-2/3">
+                <h2 className="text-xl font-bold text-white leading-tight">
+                  {settings.globalDiscountEnabled 
+                    ? (lang === 'bn' ? `সবকিছুতে ${settings.globalDiscountPercentage}% ছাড়!` : `Flat ${settings.globalDiscountPercentage}% Off All!`)
+                    : (lang === 'bn' ? 'সেরা ডিল!' : 'Best Deal!')
+                  }
+                </h2>
+                <p className="text-white/80 text-xs mt-1">
+                  {lang === 'bn' ? 'তাজা পণ্যের সমাহার নিয়ে আমরা আছি আপনার পাশে।' : 'Quality groceries delivered to your doorstep.'}
+                </p>
+                <button 
+                  onClick={() => onNavigate('COUPONS')}
+                  className="mt-3 bg-white text-orange-700 text-[10px] font-bold px-4 py-1.5 rounded-full shadow-sm uppercase tracking-wide hover:bg-green-50 transition-colors"
                 >
-                  <div className="aspect-square w-full rounded-xl overflow-hidden bg-gray-100 dark:bg-slate-900 border border-gray-100 dark:border-slate-800 group-active:scale-95 transition-transform mb-1">
-                    <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
-                  </div>
-                  <p className="text-[10px] font-bold text-gray-800 dark:text-gray-300 line-clamp-1 text-center">{product.name}</p>
-                  <p className="text-[9px] text-green-700 dark:text-green-400 font-bold text-center">৳{displayPrice}</p>
-                </div>
-              );
-            })}
+                  {lang === 'bn' ? 'অফার দেখুন' : 'View Offers'}
+                </button>
+              </div>
+              <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=300" 
+                   className="absolute right-[-20px] top-0 h-full w-1/2 object-cover opacity-60" alt="banner" />
+            </div>
           </div>
-        </section>
+
+          {/* Recently Viewed Section */}
+          {recentlyViewed.length > 0 && (
+            <section className="px-5">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <span className="text-sm">🕒</span> {lang === 'bn' ? 'সম্প্রতি দেখা পণ্য' : 'Recently Viewed'}
+                </h3>
+              </div>
+              <div className="flex overflow-x-auto pb-2 gap-3 no-scrollbar">
+                {recentlyViewed.map(product => {
+                  const discount = settings.globalDiscountEnabled ? settings.globalDiscountPercentage : 0;
+                  const displayPrice = Math.round(product.price * (1 - discount/100));
+                  
+                  return (
+                    <div 
+                      key={`rv-${product.id}`} 
+                      onClick={() => onProductClick(product)}
+                      className="flex-shrink-0 w-28 group cursor-pointer"
+                    >
+                      <div className="aspect-square w-full rounded-xl overflow-hidden bg-gray-100 dark:bg-slate-900 border border-gray-100 dark:border-slate-800 group-active:scale-95 transition-transform mb-1">
+                        <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                      </div>
+                      <p className="text-[10px] font-bold text-gray-800 dark:text-gray-300 line-clamp-1 text-center">{product.name}</p>
+                      <p className="text-[9px] text-green-700 dark:text-green-400 font-bold text-center">৳{displayPrice}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* Horizontal Categories */}
+          <section className="px-5">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-base font-bold text-gray-900 dark:text-white">{t.CATEGORIES}</h3>
+              <button 
+                onClick={() => onNavigate('CATEGORIES')}
+                className="text-xs font-bold text-green-600"
+              >
+                {lang === 'bn' ? 'সবগুলো' : 'See All'}
+              </button>
+            </div>
+            <div className="flex overflow-x-auto pb-2 gap-4 no-scrollbar">
+              {categories.map(cat => (
+                <div 
+                  key={cat.id} 
+                  onClick={() => onCategoryClick(cat.id)}
+                  className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer group"
+                >
+                  <div className={`${cat.color} dark:bg-opacity-20 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm border border-white dark:border-slate-800 group-active:scale-95 transition-transform`}>
+                    {cat.icon}
+                  </div>
+                  <span className="text-[11px] font-medium text-gray-700 dark:text-gray-400">{cat.name}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        </>
       )}
 
-      {/* Horizontal Categories */}
-      <section className="px-5">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="text-base font-bold text-gray-900 dark:text-white">{t.CATEGORIES}</h3>
-          <button className="text-xs font-bold text-green-600">{lang === 'bn' ? 'সবগুলো' : 'See All'}</button>
-        </div>
-        <div className="flex overflow-x-auto pb-2 gap-4 no-scrollbar">
-          {categories.map(cat => (
-            <div key={cat.id} className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer group">
-              <div className={`${cat.color} dark:bg-opacity-20 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm border border-white dark:border-slate-800 group-active:scale-95 transition-transform`}>
-                {cat.icon}
-              </div>
-              <span className="text-[11px] font-medium text-gray-700 dark:text-gray-400">{cat.name}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Product Grid */}
+      {/* Product Grid / Search Results */}
       <section className="px-5">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-base font-bold text-gray-900 dark:text-white">{t.FEATURED}</h3>
+          <h3 className="text-base font-bold text-gray-900 dark:text-white">
+            {isSearching 
+              ? (lang === 'bn' ? `অনুসন্ধানের ফলাফল (${filteredProducts.length})` : `Search Results (${filteredProducts.length})`)
+              : t.FEATURED
+            }
+          </h3>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          {products.map(product => (
-            <GroceryCard 
-              key={product.id} 
-              product={product} 
-              onClick={() => onProductClick(product)} 
-              onAdd={() => onAddToCart(product)} 
-              lang={lang}
-              settings={settings}
-            />
-          ))}
-        </div>
+        
+        {filteredProducts.length > 0 ? (
+          <div className="grid grid-cols-2 gap-4">
+            {filteredProducts.map(product => (
+              <GroceryCard 
+                key={product.id} 
+                product={product} 
+                onClick={() => onProductClick(product)} 
+                onAdd={() => onAddToCart(product)} 
+                lang={lang}
+                settings={settings}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-20 opacity-60">
+            <span className="text-5xl mb-4 grayscale">🔍</span>
+            <p className="text-sm font-bold text-gray-500 dark:text-gray-400 text-center">
+              {lang === 'bn' ? 'কোনো পণ্য খুঁজে পাওয়া যায়নি' : 'No products found matching your search'}
+            </p>
+            <button 
+               onClick={() => setSearchTerm('')}
+               className="mt-4 text-xs font-bold text-green-600 underline"
+            >
+               {lang === 'bn' ? 'সব পণ্য দেখুন' : 'View All Products'}
+            </button>
+          </div>
+        )}
       </section>
     </div>
   );
@@ -145,10 +199,13 @@ const GroceryCard: React.FC<{ product: Product; onClick: () => void; onAdd: () =
   const displayPrice = Math.round(product.price * (1 - discount / 100));
   const hasGlobalOffer = settings.globalDiscountEnabled && settings.globalDiscountPercentage > 0;
   const shownOldPrice = hasGlobalOffer ? product.price : product.oldPrice;
+  const individualDiscount = (!hasGlobalOffer && product.oldPrice && product.oldPrice > product.price) 
+        ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100) 
+        : 0;
 
   return (
     <div 
-      className="bg-white dark:bg-slate-900 rounded-xl p-3 flex flex-col shadow-sm border border-gray-100 dark:border-slate-800 active:scale-98 transition-all hover:border-green-100 dark:hover:border-green-900 cursor-pointer relative"
+      className="bg-white dark:bg-slate-900 rounded-xl p-3 flex flex-col shadow-sm border border-gray-100 dark:border-slate-800 active:scale-98 transition-all hover:border-green-100 dark:hover:border-green-900 cursor-pointer relative group"
       onClick={onClick}
     >
       <div className="relative aspect-square w-full mb-3 rounded-lg overflow-hidden bg-gray-50 dark:bg-slate-800">
@@ -160,9 +217,9 @@ const GroceryCard: React.FC<{ product: Product; onClick: () => void; onAdd: () =
            </div>
         )}
         
-        {!hasGlobalOffer && product.oldPrice && (
+        {!hasGlobalOffer && individualDiscount > 0 && (
           <div className="absolute top-2 left-2 bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm z-10">
-            {t.OFF}
+            {individualDiscount}% {t.OFF}
           </div>
         )}
 
@@ -180,7 +237,7 @@ const GroceryCard: React.FC<{ product: Product; onClick: () => void; onAdd: () =
         <div className="flex items-center justify-between mt-auto">
           <div className="flex flex-col">
             <span className="text-green-700 dark:text-green-400 font-black text-sm">৳{displayPrice}</span>
-            {shownOldPrice && (
+            {shownOldPrice && shownOldPrice > displayPrice && (
               <span className="text-gray-300 dark:text-gray-600 line-through text-[10px]">৳{shownOldPrice}</span>
             )}
           </div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef } from 'react';
 import { Product, Category, Screen } from '../types';
 import { TRANSLATIONS } from '../constants';
@@ -34,6 +33,9 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [error, setError] = useState('');
+  
+  // Discount State
+  const [discountPercent, setDiscountPercent] = useState<string>('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const t = TRANSLATIONS[lang];
@@ -86,6 +88,7 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
       isActive: true,
       image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400'
     });
+    setDiscountPercent('');
     setError('');
     setShowModal(true);
   };
@@ -93,8 +96,65 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
   const handleOpenEdit = (p: Product) => {
     setEditingProduct(p);
     setFormData({ ...p });
+    
+    // Calculate existing discount %
+    if (p.oldPrice && p.oldPrice > p.price) {
+      const d = Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100);
+      setDiscountPercent(d.toString());
+    } else {
+      setDiscountPercent('');
+    }
+    
     setError('');
     setShowModal(true);
+  };
+
+  const handlePriceChange = (field: 'price' | 'oldPrice' | 'discount', value: string) => {
+    const valNum = parseFloat(value);
+    
+    if (field === 'discount') {
+        setDiscountPercent(value);
+        if (value === '' || isNaN(valNum)) return;
+        
+        let basePrice = formData.oldPrice || 0;
+        
+        // If Old Price is not set, assume current Price is Base Price
+        if (basePrice === 0) {
+            basePrice = formData.price || 0;
+            // Optimistically update oldPrice
+            setFormData(prev => ({ ...prev, oldPrice: basePrice }));
+        }
+
+        if (basePrice > 0) {
+            const newPrice = Math.round(basePrice * (1 - valNum / 100));
+            setFormData(prev => ({ ...prev, price: newPrice, oldPrice: basePrice }));
+        }
+    } else if (field === 'oldPrice') {
+        const newMrp = isNaN(valNum) ? 0 : valNum;
+        const disc = parseFloat(discountPercent);
+        
+        let newPrice = formData.price;
+        // Recalc price if discount exists
+        if (!isNaN(disc) && disc > 0 && newMrp > 0) {
+            newPrice = Math.round(newMrp * (1 - disc / 100));
+        } else if (newMrp > 0 && (!formData.price || formData.price === 0)) {
+            newPrice = newMrp;
+        }
+        
+        setFormData(prev => ({ ...prev, oldPrice: newMrp, price: newPrice }));
+    } else if (field === 'price') {
+        const newPrice = isNaN(valNum) ? 0 : valNum;
+        setFormData(prev => ({ ...prev, price: newPrice }));
+        
+        // Reverse calc discount % if MRP exists
+        const mrp = formData.oldPrice || 0;
+        if (mrp > newPrice && newPrice > 0) {
+            const d = Math.round(((mrp - newPrice) / mrp) * 100);
+            setDiscountPercent(d.toString());
+        } else {
+            setDiscountPercent('');
+        }
+    }
   };
 
   const handleOpenDelete = (p: Product) => {
@@ -287,6 +347,9 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-[12px] font-black text-blue-600 dark:text-blue-400">৳{p.price}</span>
+                  {p.oldPrice && p.oldPrice > p.price && (
+                     <span className="text-[10px] text-slate-400 line-through font-bold">৳{p.oldPrice}</span>
+                  )}
                   <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">/ {p.unit}</span>
                 </div>
               </div>
@@ -367,24 +430,40 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{lang === 'bn' ? 'মূল্য (৳)' : 'Price (৳)'}</label>
-                  <input 
-                    type="number" 
-                    value={formData.price || ''} 
-                    onChange={e => setFormData({...formData, price: Number(e.target.value)})} 
-                    className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 outline-none text-sm font-bold dark:text-white" 
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{lang === 'bn' ? 'পুরাতন মূল্য' : 'Old Price'}</label>
-                  <input 
-                    type="number" 
-                    value={formData.oldPrice || ''} 
-                    onChange={e => setFormData({...formData, oldPrice: Number(e.target.value)})} 
-                    className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 outline-none text-sm font-bold dark:text-white" 
-                  />
+              {/* Advanced Pricing Section with Discount */}
+              <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-3">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 border-b border-slate-200 dark:border-slate-700 pb-1">Pricing Strategy</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">{lang === 'bn' ? 'বাজার মূল্য' : 'Regular'}</label>
+                    <input 
+                      type="number" 
+                      value={formData.oldPrice || ''} 
+                      onChange={e => handlePriceChange('oldPrice', e.target.value)}
+                      placeholder="MRP"
+                      className="w-full px-2 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 outline-none text-xs font-bold dark:text-white text-center" 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-blue-500 uppercase tracking-widest ml-1 text-center block">Discount %</label>
+                    <input 
+                      type="number" 
+                      value={discountPercent} 
+                      onChange={e => handlePriceChange('discount', e.target.value)}
+                      placeholder="0%"
+                      className="w-full px-2 py-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 outline-none text-xs font-black text-blue-600 dark:text-blue-400 text-center focus:ring-2 focus:ring-blue-500" 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-green-600 uppercase tracking-widest ml-1">{lang === 'bn' ? 'বিক্রয় মূল্য' : 'Sale Price'}</label>
+                    <input 
+                      type="number" 
+                      value={formData.price || ''} 
+                      onChange={e => handlePriceChange('price', e.target.value)} 
+                      placeholder="Sale"
+                      className="w-full px-2 py-2.5 rounded-xl bg-white dark:bg-slate-900 border-2 border-green-500 dark:border-green-600 outline-none text-xs font-black text-green-700 dark:text-green-400 text-center" 
+                    />
+                  </div>
                 </div>
               </div>
 

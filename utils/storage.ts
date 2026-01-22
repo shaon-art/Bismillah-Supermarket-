@@ -1,3 +1,4 @@
+
 import { Product, Category, Order, Address, User, SystemSettings, CartItem } from '../types';
 import { DUMMY_PRODUCTS, DUMMY_ORDERS, CATEGORIES } from '../constants';
 
@@ -35,13 +36,23 @@ const DEFAULTS = {
     storeName: "বিসমিল্লাহ সুপার মার্কেট",
     storeSlogan: "তাজা ও বিশুদ্ধ পণ্যের আস্থার প্রতীক",
     storeLogo: "https://raw.githubusercontent.com/BismillahSupermarket/Assets/main/logo.png",
-    supportPhone: "01978501415",
+    supportPhone: "01799261218",
     globalDiscountEnabled: false,
     globalDiscountPercentage: 10,
     autoSyncEnabled: true,
     lastSyncTimestamp: new Date().toISOString()
   }
 };
+
+// Custom Event for Real-time Updates (Same Tab)
+const DATA_CHANGE_EVENT = 'bismillah_data_change';
+
+// Broadcast Channel for Real-time Updates (Cross Tab/Window)
+// Safe initialization for Server-Side/Build environments
+let SYNC_CHANNEL: BroadcastChannel | null = null;
+if (typeof window !== 'undefined' && typeof BroadcastChannel !== 'undefined') {
+  SYNC_CHANNEL = new BroadcastChannel('bismillah_app_sync');
+}
 
 export const storage = {
   // Initialize Persistent Storage (Native-like behavior)
@@ -89,11 +100,21 @@ export const storage = {
     }
   },
 
-  // Generic Save
+  // Generic Save with Event Dispatch (Simulates Server Push)
   save: (key: string, value: any) => {
     if (typeof window === 'undefined') return;
     try {
-      localStorage.setItem(key, JSON.stringify(value));
+      const jsonValue = JSON.stringify(value);
+      localStorage.setItem(key, jsonValue);
+      
+      // 1. Notify current tab components
+      window.dispatchEvent(new CustomEvent(DATA_CHANGE_EVENT, { detail: { key, value } }));
+      
+      // 2. Notify other tabs/windows immediately via BroadcastChannel
+      if (SYNC_CHANNEL) {
+        SYNC_CHANNEL.postMessage({ type: 'SYNC', key, value });
+      }
+
     } catch (error) {
       console.error(`Error saving ${key}`, error);
       // Handle quota exceeded
@@ -101,6 +122,51 @@ export const storage = {
         alert('মোবাইলের মেমোরি ফুল! অ্যাপের কিছু ডাটা ক্লিয়ার করুন অথবা ব্যাকআপ নিন।');
       }
     }
+  },
+
+  // Subscribe to changes (Simulates Server Listener)
+  subscribe: (callback: (key: string, newValue: any) => void) => {
+    if (typeof window === 'undefined') return () => {};
+    
+    // Handler for same-tab events
+    const localHandler = (e: any) => {
+      if (e.type === DATA_CHANGE_EVENT) {
+        callback(e.detail.key, e.detail.value);
+      }
+    };
+
+    // Handler for cross-tab broadcast messages
+    const channelHandler = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'SYNC') {
+        // console.log(`[Sync Received] ${event.data.key}`);
+        callback(event.data.key, event.data.value);
+      }
+    };
+
+    if (SYNC_CHANNEL) {
+      SYNC_CHANNEL.onmessage = channelHandler;
+    }
+
+    // Also listen to storage events as a fallback
+    const storageHandler = (e: StorageEvent) => {
+      if (e.key && e.newValue) {
+        try {
+          const val = JSON.parse(e.newValue);
+          callback(e.key, val);
+        } catch (err) {}
+      }
+    };
+
+    window.addEventListener(DATA_CHANGE_EVENT, localHandler);
+    window.addEventListener('storage', storageHandler);
+    
+    return () => {
+      window.removeEventListener(DATA_CHANGE_EVENT, localHandler);
+      window.removeEventListener('storage', storageHandler);
+      if (SYNC_CHANNEL) {
+        SYNC_CHANNEL.onmessage = null;
+      }
+    };
   },
 
   // Specific Loaders
@@ -150,12 +216,12 @@ export const storage = {
         try {
           const json = JSON.parse(e.target?.result as string);
           if (json.data) {
-            if (json.data.products) localStorage.setItem(KEYS.PRODUCTS, json.data.products);
-            if (json.data.categories) localStorage.setItem(KEYS.CATEGORIES, json.data.categories);
-            if (json.data.orders) localStorage.setItem(KEYS.ORDERS, json.data.orders);
-            if (json.data.users) localStorage.setItem(KEYS.USERS, json.data.users);
-            if (json.data.addresses) localStorage.setItem(KEYS.ADDRESSES, json.data.addresses);
-            if (json.data.settings) localStorage.setItem(KEYS.SETTINGS, json.data.settings);
+            if (json.data.products) storage.save(KEYS.PRODUCTS, JSON.parse(json.data.products || '[]'));
+            if (json.data.categories) storage.save(KEYS.CATEGORIES, JSON.parse(json.data.categories || '[]'));
+            if (json.data.orders) storage.save(KEYS.ORDERS, JSON.parse(json.data.orders || '[]'));
+            if (json.data.users) storage.save(KEYS.USERS, JSON.parse(json.data.users || '[]'));
+            if (json.data.addresses) storage.save(KEYS.ADDRESSES, JSON.parse(json.data.addresses || '[]'));
+            if (json.data.settings) storage.save(KEYS.SETTINGS, JSON.parse(json.data.settings || '{}'));
             resolve(true);
           } else {
             reject('Invalid backup file');
