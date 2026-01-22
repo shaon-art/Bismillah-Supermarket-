@@ -1,7 +1,5 @@
-
 import React, { useState } from 'react';
 import { TRANSLATIONS } from '../constants';
-/* Fix: Added Screen type import */
 import { Screen } from '../types';
 
 interface SettingsScreenProps {
@@ -16,7 +14,6 @@ interface SettingsScreenProps {
   onBack: () => void;
   onLogout: () => void;
   isAdmin?: boolean;
-  /* Fix: Added missing onNavigate prop to the interface */
   onNavigate?: (screen: Screen) => void;
 }
 
@@ -32,10 +29,10 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
   onBack,
   onLogout,
   isAdmin,
-  /* Fix: Destructured onNavigate */
   onNavigate
 }) => {
   const [showLangModal, setShowLangModal] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const t = TRANSLATIONS[language];
 
   return (
@@ -58,7 +55,6 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
             </h3>
             <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-orange-100 dark:border-orange-900/20 overflow-hidden">
                <button 
-                /* Fix: Use onNavigate prop instead of window.location.hash for proper routing */
                 onClick={() => onNavigate?.('ADMIN_CONTROL')}
                 className="w-full flex items-center justify-between p-4 hover:bg-orange-50 dark:hover:bg-orange-900/10 transition-colors"
                >
@@ -129,7 +125,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
             <SettingItem 
               icon="🚪" 
               title={t.LOGOUT} 
-              onClick={onLogout} 
+              onClick={() => setShowLogoutConfirm(true)} 
               isDanger
               last 
             />
@@ -165,6 +161,40 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
             >
               {t.CANCEL}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 animate-fadeIn bg-black/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[32px] p-8 shadow-2xl relative border border-white/10 flex flex-col items-center text-center animate-[scaleIn_0.2s_ease-out]">
+            <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center text-3xl mb-4 animate-bounce">
+              🚪
+            </div>
+            <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2">
+              {language === 'bn' ? 'লগ আউট করতে চান?' : 'Logout?'}
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-bold leading-relaxed mb-6">
+              {language === 'bn' 
+                ? 'আপনি কি নিশ্চিত যে আপনি লগ আউট করতে চান? পরবর্তীতে আবার লগইন করতে হবে।' 
+                : 'Are you sure you want to logout? You will need to login again.'
+              }
+            </p>
+            <div className="flex w-full gap-3">
+              <button 
+                onClick={() => setShowLogoutConfirm(false)} 
+                className="flex-1 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-slate-800 rounded-2xl active:scale-95 transition-all"
+              >
+                {t.CANCEL}
+              </button>
+              <button 
+                onClick={onLogout} 
+                className="flex-1 py-3 text-[10px] font-black text-white uppercase tracking-widest bg-red-600 rounded-2xl shadow-xl shadow-red-900/20 active:scale-95 transition-all"
+              >
+                {t.LOGOUT}
+              </button>
+            </div>
           </div>
         </div>
       )}

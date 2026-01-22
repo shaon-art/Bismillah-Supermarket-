@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { TRANSLATIONS } from '../constants';
 import { Screen, User, Order, SystemSettings } from '../types';
@@ -24,6 +23,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const t = TRANSLATIONS[lang] as any;
 
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   
   const [editUserData, setEditUserData] = useState<Partial<User>>({
     name: currentUser.name,
@@ -160,11 +160,45 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
         </div>
       )}
 
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 animate-fadeIn bg-black/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[32px] p-8 shadow-2xl relative border border-white/10 flex flex-col items-center text-center animate-[scaleIn_0.2s_ease-out]">
+            <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center text-3xl mb-4 animate-bounce">
+              🚪
+            </div>
+            <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2">
+              {lang === 'bn' ? 'লগ আউট করতে চান?' : 'Logout?'}
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-bold leading-relaxed mb-6">
+              {lang === 'bn' 
+                ? 'আপনি কি নিশ্চিত যে আপনি লগ আউট করতে চান? পরবর্তীতে আবার লগইন করতে হবে।' 
+                : 'Are you sure you want to logout? You will need to login again.'
+              }
+            </p>
+            <div className="flex w-full gap-3">
+              <button 
+                onClick={() => setShowLogoutConfirm(false)} 
+                className="flex-1 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-slate-800 rounded-2xl active:scale-95 transition-all"
+              >
+                {t.CANCEL}
+              </button>
+              <button 
+                onClick={onLogout} 
+                className="flex-1 py-3 text-[10px] font-black text-white uppercase tracking-widest bg-red-600 rounded-2xl shadow-xl shadow-red-900/20 active:scale-95 transition-all"
+              >
+                {t.LOGOUT}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white dark:bg-slate-900 rounded-[32px] shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden">
         <MenuOption icon="📦" title={t.ORDER_HISTORY} onClick={() => onNavigate('ORDERS')} />
         <MenuOption icon="📍" title={t.DELIVERY_ADDRESS} onClick={() => onNavigate('ADDRESS_LIST')} />
         <MenuOption icon="⚙️" title={t.SETTINGS} onClick={() => onNavigate('SETTINGS')} />
-        <MenuOption icon="🚪" title={t.LOGOUT} isDanger last onClick={onLogout} />
+        <MenuOption icon="🚪" title={t.LOGOUT} isDanger last onClick={() => setShowLogoutConfirm(true)} />
       </div>
 
       <div 

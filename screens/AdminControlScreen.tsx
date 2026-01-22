@@ -1,5 +1,6 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { SystemSettings, Screen, Product, Order } from '../types';
+import { storage } from '../utils/storage';
 
 interface AdminControlScreenProps {
   settings: SystemSettings;
@@ -21,7 +22,35 @@ const AdminControlScreen: React.FC<AdminControlScreenProps> = ({
   lang 
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const backupInputRef = useRef<HTMLInputElement>(null);
   const [manualSyncing, setManualSyncing] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+  
+  // Storage Stats State
+  const [storageInfo, setStorageInfo] = useState<{usage: number, quota: number, persisted: boolean} | null>(null);
+
+  useEffect(() => {
+    const checkStorage = async () => {
+        const persisted = await storage.init();
+        const estimate = await storage.getEstimate();
+        if (estimate) {
+            setStorageInfo({
+                usage: estimate.usage || 0,
+                quota: estimate.quota || 0,
+                persisted
+            });
+        }
+    };
+    checkStorage();
+  }, []);
+
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
 
   const handleToggle = (field: keyof SystemSettings) => {
     onUpdateSettings({ ...settings, [field]: !settings[field] });
@@ -52,12 +81,72 @@ const AdminControlScreen: React.FC<AdminControlScreenProps> = ({
     }, 2000);
   };
 
+  const handleBackup = () => {
+    storage.createBackup();
+    alert(lang === 'bn' ? 'ডাটাবেস ব্যাকআপ মোবাইল স্টোরেজে সেভ করা হয়েছে।' : 'Database backup saved to mobile storage.');
+  };
+
+  const handleRestore = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (confirm(lang === 'bn' ? 'আপনি কি নিশ্চিত? বর্তমান সব ডাটা মুছে ব্যাকআপ ফাইল থেকে রিস্টোর করা হবে।' : 'Are you sure? This will overwrite current data with the backup.')) {
+        setIsRestoring(true);
+        storage.restoreBackup(file)
+          .then(() => {
+            alert(lang === 'bn' ? 'সফলভাবে রিস্টোর হয়েছে! অ্যাপ রিলোড হচ্ছে...' : 'Restore successful! Reloading...');
+            window.location.reload();
+          })
+          .catch(err => {
+            alert('Failed to restore: ' + err);
+            setIsRestoring(false);
+          });
+      }
+    }
+  };
+
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert(lang === 'bn' ? 'ছবির সাইজ অনেক বড়। দয়া করে ৫ মেগাবাইটের কম সাইজের ছবি দিন।' : 'Image size is too large. Please upload an image under 5MB.');
+        return;
+      }
+
       const reader = new FileReader();
-      reader.onloadend = () => {
-        handleValueChange('storeLogo', reader.result as string);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const MAX_SIZE = 256;
+
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height *= MAX_SIZE / width;
+              width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width *= MAX_SIZE / height;
+              height = MAX_SIZE;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const dataUrl = canvas.toDataURL('image/png');
+            handleValueChange('storeLogo', dataUrl);
+          }
+        };
+        
+        if (event.target?.result) {
+            img.src = event.target.result as string;
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -94,14 +183,7 @@ const AdminControlScreen: React.FC<AdminControlScreenProps> = ({
                <span className="text-[8px] font-bold text-white">EDIT</span>
              </div>
           </div>
-          {/* Hidden Input for Logo Upload */}
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            className="hidden" 
-            accept="image/*" 
-            onChange={handleLogoUpload} 
-          />
+          <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleLogoUpload} />
         </div>
 
         {/* Highlighted Primary Stats */}
@@ -126,6 +208,68 @@ const AdminControlScreen: React.FC<AdminControlScreenProps> = ({
       </div>
 
       <div className="px-5 -mt-8 relative z-20 space-y-6">
+        {/* Secure Backup Storage - The "Soldier" Feature */}
+        <section className="space-y-3">
+          <h3 className="text-xs font-black text-red-500 uppercase tracking-widest ml-1">{lang === 'bn' ? 'মোবাইল স্টোরেজ ও ডাটাবেস' : 'Device Storage & Database'}</h3>
+          <div className="bg-white dark:bg-slate-900 rounded-[32px] p-6 border-2 border-red-500/20 shadow-xl shadow-red-500/10 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-5 text-6xl">🔒</div>
+            
+            {/* Storage Health Indicator */}
+            {storageInfo && (
+              <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+                 <div className="flex justify-between items-center mb-2">
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{lang === 'bn' ? 'স্টোরেজ ব্যবহার' : 'Storage Usage'}</span>
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${storageInfo.persisted ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                       {storageInfo.persisted ? 'PROTECTED' : 'STANDARD'}
+                    </span>
+                 </div>
+                 <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-blue-500 transition-all duration-1000"
+                      style={{ width: `${Math.min((storageInfo.usage / storageInfo.quota) * 100, 100)}%` }}
+                    ></div>
+                 </div>
+                 <div className="flex justify-between mt-1.5">
+                    <span className="text-[9px] font-bold text-slate-400">{formatBytes(storageInfo.usage)}</span>
+                    <span className="text-[9px] font-bold text-slate-400">{formatBytes(storageInfo.quota)}</span>
+                 </div>
+              </div>
+            )}
+
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mb-4 leading-relaxed">
+              {lang === 'bn' 
+                ? 'আপনার অ্যাপের সকল ডাটা এখানে সুরক্ষিত রাখতে ব্যাকআপ নিন। এই ফাইলটি আপনার পার্সোনাল ফোল্ডার হিসেবে কাজ করবে।' 
+                : 'Keep your app data safe here. Download a backup file that acts as your permanent secure folder.'}
+            </p>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <button 
+                onClick={handleBackup}
+                className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all flex flex-col items-center gap-2"
+              >
+                <span className="text-xl">💾</span>
+                {lang === 'bn' ? 'সেভ করুন' : 'Save to Mobile'}
+              </button>
+              
+              <button 
+                onClick={() => backupInputRef.current?.click()}
+                disabled={isRestoring}
+                className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 py-4 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-95 transition-all flex flex-col items-center gap-2 border border-slate-200 dark:border-slate-700"
+              >
+                {isRestoring ? (
+                   <div className="w-5 h-5 border-2 border-slate-400 border-t-slate-800 rounded-full animate-spin"></div>
+                ) : (
+                  <>
+                    <span className="text-xl">📂</span>
+                    {lang === 'bn' ? 'রিস্টোর করুন' : 'Restore Data'}
+                  </>
+                )}
+              </button>
+              <input type="file" ref={backupInputRef} className="hidden" accept=".json" onChange={handleRestore} />
+            </div>
+          </div>
+        </section>
+
         {/* Management Quick Links */}
         <section className="space-y-3">
           <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{lang === 'bn' ? 'দ্রুত ম্যানেজমেন্ট' : 'Management Shortcuts'}</h3>

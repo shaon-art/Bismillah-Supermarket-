@@ -18,6 +18,7 @@ import UserManagementScreen from './screens/UserManagementScreen';
 import AdminControlScreen from './screens/AdminControlScreen';
 import CategoryManagementScreen from './screens/CategoryManagementScreen';
 import { GoogleGenAI } from "@google/genai";
+import { storage } from './utils/storage';
 
 const Logo: React.FC<{ settings: SystemSettings, onClick: () => void }> = ({ settings, onClick }) => {
   const parts = settings.storeName.split(' ');
@@ -179,33 +180,22 @@ const MessagingScreen: React.FC<{
 };
 
 const App: React.FC = () => {
-  const loadFromLS = <T,>(key: string, defaultValue: T): T => {
-    try {
-      const stored = localStorage.getItem(key);
-      return stored ? JSON.parse(stored) : defaultValue;
-    } catch (e) {
-      return defaultValue;
-    }
-  };
-
-  const saveToLS = (key: string, value: any) => {
-    localStorage.setItem(key, JSON.stringify(value));
-  };
-
-  const [currentUser, setCurrentUser] = useState<User | null>(() => loadFromLS('currentUser', null));
+  // --- Persistent State Initialization using storage utility ---
+  const [currentUser, setCurrentUser] = useState<User | null>(() => storage.load('currentUser', null));
   const [currentScreen, setCurrentScreen] = useState<Screen>(() => {
-    const user = loadFromLS('currentUser', null);
-    return user ? 'HOME' : 'AUTH';
+    const user = storage.load('currentUser', null);
+    if (!user) return 'AUTH';
+    return storage.load('currentScreen', 'HOME');
   });
   
-  const [cart, setCart] = useState<CartItem[]>(() => loadFromLS('cart', []));
-  const [favorites, setFavorites] = useState<string[]>(() => loadFromLS('favorites', []));
-  const [recentlyViewedIds, setRecentlyViewedIds] = useState<string[]>(() => loadFromLS('recentlyViewedIds', []));
+  const [cart, setCart] = useState<CartItem[]>(() => storage.load('cart', []));
+  const [favorites, setFavorites] = useState<string[]>(() => storage.load('favorites', []));
+  const [recentlyViewedIds, setRecentlyViewedIds] = useState<string[]>(() => storage.load('recentlyViewedIds', []));
   
-  const [products, setProducts] = useState<Product[]>(() => loadFromLS('products_v1', DUMMY_PRODUCTS));
-  const [categories, setCategories] = useState<Category[]>(() => loadFromLS('categories_v1', CATEGORIES));
-  const [orders, setOrders] = useState<Order[]>(() => loadFromLS('orders_v1', DUMMY_ORDERS));
-  const [addresses, setAddresses] = useState<Address[]>(() => loadFromLS('addresses_v1', [
+  const [products, setProducts] = useState<Product[]>(() => storage.getProducts());
+  const [categories, setCategories] = useState<Category[]>(() => storage.getCategories());
+  const [orders, setOrders] = useState<Order[]>(() => storage.getOrders());
+  const [addresses, setAddresses] = useState<Address[]>(() => storage.load('addresses_v1', [
     {
       id: 'a1',
       label: 'Home',
@@ -216,31 +206,18 @@ const App: React.FC = () => {
     }
   ]));
 
-  const [systemSettings, setSystemSettings] = useState<SystemSettings>(() => loadFromLS('systemSettings_v3', {
-    isStoreOpen: true,
-    maintenanceMode: false,
-    deliveryCharge: 50,
-    minOrderAmount: 100,
-    aiAssistantEnabled: true,
-    broadcastMessage: "",
-    storeName: "বিসমিল্লাহ সুপার মার্কেট",
-    storeSlogan: "তাজা ও বিশুদ্ধ পণ্যের আস্থার প্রতীক",
-    storeLogo: "https://raw.githubusercontent.com/BismillahSupermarket/Assets/main/logo.png",
-    supportPhone: "01978501415",
-    globalDiscountEnabled: false,
-    globalDiscountPercentage: 10,
-    autoSyncEnabled: true,
-    lastSyncTimestamp: new Date().toISOString()
-  }));
+  const [systemSettings, setSystemSettings] = useState<SystemSettings>(() => storage.getSettings());
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [selectedOrderForTracking, setSelectedOrderForTracking] = useState<Order | null>(null);
+  
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(() => storage.load('selectedProduct', null));
+  const [selectedOrderForTracking, setSelectedOrderForTracking] = useState<Order | null>(() => storage.load('selectedOrderForTracking', null));
+  
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
   const [language, setLanguage] = useState<'bn' | 'en'>(() => (localStorage.getItem('lang') as any) || 'bn');
-  const [notificationsEnabled, setNotificationsEnabled] = useState(() => loadFromLS('notificationsEnabled', true));
-  const [soundsEnabled, setSoundsEnabled] = useState(() => loadFromLS('soundsEnabled', true));
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => storage.load('notificationsEnabled', true));
+  const [soundsEnabled, setSoundsEnabled] = useState(() => storage.load('soundsEnabled', true));
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
@@ -248,6 +225,11 @@ const App: React.FC = () => {
   const t = TRANSLATIONS[language];
 
   useEffect(() => {
+    // Initialise Persistent Storage on Boot
+    storage.init().then(persisted => {
+      if (persisted) console.log("Device storage persistence active");
+    });
+
     if (!currentUser && currentScreen !== 'AUTH') {
       setCurrentScreen('AUTH');
     } else if (currentUser && currentScreen === 'AUTH') {
@@ -266,23 +248,27 @@ const App: React.FC = () => {
     };
   }, []);
 
+  // --- Auto-Save to Storage (The "Soldier" protecting data) ---
   useEffect(() => {
     if (!systemSettings.autoSyncEnabled) return;
-    const syncData = () => {
-      setIsSyncing(true);
-      saveToLS('products_v1', products);
-      saveToLS('categories_v1', categories);
-      saveToLS('orders_v1', orders);
-      saveToLS('addresses_v1', addresses);
-      saveToLS('cart', cart);
-      saveToLS('favorites', favorites);
-      saveToLS('recentlyViewedIds', recentlyViewedIds);
-      saveToLS('systemSettings_v3', systemSettings);
-      setTimeout(() => setIsSyncing(false), 500); // Reduced delay for faster sync
-    };
-    const timer = setTimeout(syncData, 500); // Trigger save faster
+    
+    storage.save('products_v1', products);
+    storage.save('categories_v1', categories);
+    storage.save('orders_v1', orders);
+    storage.save('addresses_v1', addresses);
+    storage.save('cart', cart);
+    storage.save('favorites', favorites);
+    storage.save('recentlyViewedIds', recentlyViewedIds);
+    storage.save('systemSettings_v3', systemSettings);
+    
+    storage.save('currentScreen', currentScreen);
+    storage.save('selectedProduct', selectedProduct);
+    storage.save('selectedOrderForTracking', selectedOrderForTracking);
+    
+    setIsSyncing(true);
+    const timer = setTimeout(() => setIsSyncing(false), 800);
     return () => clearTimeout(timer);
-  }, [products, categories, orders, addresses, cart, favorites, recentlyViewedIds, systemSettings]);
+  }, [products, categories, orders, addresses, cart, favorites, recentlyViewedIds, systemSettings, currentScreen, selectedProduct, selectedOrderForTracking]);
 
   useEffect(() => {
     localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
@@ -293,16 +279,17 @@ const App: React.FC = () => {
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);
-    saveToLS('currentUser', user);
+    storage.save('currentUser', user);
     setCurrentScreen('HOME');
   };
 
   const handleLogout = () => {
-    if (window.confirm(language === 'bn' ? 'আপনি কি নিশ্চিত?' : 'Are you sure?')) {
-      setCurrentUser(null);
-      localStorage.removeItem('currentUser');
-      setCurrentScreen('AUTH');
-    }
+    setCurrentUser(null);
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('currentScreen');
+    localStorage.removeItem('selectedProduct');
+    localStorage.removeItem('selectedOrderForTracking');
+    setCurrentScreen('AUTH');
   };
 
   const handleSendMessage = async (text: string) => {
@@ -313,8 +300,6 @@ const App: React.FC = () => {
     setIsTyping(true);
 
     try {
-      // In Vercel, Environment Variables are accessed via process.env during build or runtime
-      // Ensure API_KEY is set in Vercel Project Settings > Environment Variables
       const apiKey = process.env.API_KEY;
       if (!apiKey || apiKey === '') {
         throw new Error("API Key is missing. Please set API_KEY in Vercel settings.");
@@ -365,12 +350,17 @@ const App: React.FC = () => {
   };
 
   const renderScreen = () => {
+    const adminScreens: Screen[] = ['ADMIN_CONTROL', 'PRODUCT_MANAGEMENT', 'CATEGORY_MANAGEMENT', 'USER_MANAGEMENT'];
+    if (adminScreens.includes(currentScreen) && !currentUser?.isAdmin) {
+      return <HomeScreen products={products} categories={categories} recentlyViewed={products.filter(p => recentlyViewedIds.includes(p.id))} onProductClick={handleProductClick} onAddToCart={addToCart} onNavigate={setCurrentScreen} lang={language} settings={systemSettings} />;
+    }
+
     switch (currentScreen) {
       case 'AUTH': return <AuthScreen onLogin={handleLogin} />;
       case 'HOME': return <HomeScreen products={products} categories={categories} recentlyViewed={products.filter(p => recentlyViewedIds.includes(p.id))} onProductClick={handleProductClick} onAddToCart={addToCart} onNavigate={setCurrentScreen} lang={language} settings={systemSettings} />;
       case 'CATEGORIES': return <CategoryScreen products={products} categories={categories} onProductClick={handleProductClick} onAddToCart={addToCart} settings={systemSettings} />;
       case 'CART': return <CartScreen cart={cart} addresses={addresses} onUpdateQty={(id, d) => setCart(p => p.map(i => i.id === id ? {...i, quantity: Math.max(1, i.quantity+d)} : i))} onRemove={id => setCart(p => p.filter(i => i.id !== id))} onClearCart={() => setCart([])} onPlaceOrder={(m, d, a) => { setOrders(p => [{ id: `ORD-${Date.now()}`, date: 'Just now', total: cart.reduce((a,c)=>a+(c.price*c.quantity),0)+systemSettings.deliveryCharge, status: 'PENDING', itemsCount: cart.length, items: cart.map(i=>({name:i.name, quantity:i.quantity, price:i.price})), paymentMethod: m, deliveryAddress: a }, ...p]); setCart([]); setCurrentScreen('ORDERS'); }} onManageAddresses={() => setCurrentScreen('ADDRESS_LIST')} lang={language} isStoreOpen={systemSettings.isStoreOpen} deliveryCharge={systemSettings.deliveryCharge} supportPhone={systemSettings.supportPhone} />;
-      case 'PROFILE': return <ProfileScreen currentUser={currentUser!} isAdmin={currentUser!.isAdmin} onLogout={handleLogout} onUpdateUser={u => {setCurrentUser(u); saveToLS('currentUser', u);}} onNavigate={setCurrentScreen} lang={language} />;
+      case 'PROFILE': return <ProfileScreen currentUser={currentUser!} isAdmin={currentUser!.isAdmin} onLogout={handleLogout} onUpdateUser={u => {setCurrentUser(u); storage.save('currentUser', u);}} onNavigate={setCurrentScreen} lang={language} />;
       case 'MESSAGES': return <MessagingScreen messages={messages} onSendMessage={handleSendMessage} isTyping={isTyping} onBack={() => setCurrentScreen('HOME')} lang={language} />;
       case 'ORDERS': return <OrderListScreen orders={orders} isAdmin={currentUser!.isAdmin} onBack={() => setCurrentScreen('PROFILE')} onCancelOrder={id => setOrders(p=>p.map(o=>o.id===id?{...o,status:'CANCELED'}:o))} onAcceptOrder={id => setOrders(p=>p.map(o=>o.id===id?{...o,status:'ACCEPTED'}:o))} onTrackOrder={o => {setSelectedOrderForTracking(o); setCurrentScreen('TRACKING');}} lang={language} deliveryCharge={systemSettings.deliveryCharge} />;
       case 'TRACKING': return selectedOrderForTracking ? <TrackingScreen order={selectedOrderForTracking} isAdmin={currentUser!.isAdmin} onBack={() => setCurrentScreen('ORDERS')} onUpdateStatus={(id, s) => setOrders(p=>p.map(o=>o.id===id?{...o,status:s}:o))} /> : null;
@@ -391,11 +381,9 @@ const App: React.FC = () => {
   }
 
   const isTabScreen = ['HOME', 'CATEGORIES', 'CART', 'PROFILE', 'SETTINGS'].includes(currentScreen);
-  // These screens handle their own scrolling or need no scrolling (like Category which has internal scrolling panes)
   const isNoScrollScreen = ['CATEGORIES', 'MESSAGES'].includes(currentScreen);
 
   return (
-    // Fixed height 100dvh prevents address bar glitches on mobile
     <div className={`max-w-md mx-auto h-[100dvh] w-full ${isDarkMode ? 'dark' : ''} bg-gray-50 dark:bg-slate-950 overflow-hidden`}>
       <div className="h-full flex flex-col relative shadow-xl overflow-hidden bg-gray-50 dark:bg-slate-950">
         {isTabScreen && (
@@ -403,15 +391,15 @@ const App: React.FC = () => {
             <Logo settings={systemSettings} onClick={() => setCurrentScreen('HOME')} />
             <div className="flex gap-2 items-center">
               {isSyncing && <span className="text-[8px] font-black text-green-500 uppercase animate-pulse">Syncing</span>}
+              <button onClick={() => window.location.reload()} className="w-10 h-10 bg-gray-50 dark:bg-slate-800 text-gray-500 rounded-2xl flex items-center justify-center active:scale-95 transition-transform" title="Refresh">🔄</button>
               <button onClick={() => setCurrentScreen('SETTINGS')} className="w-10 h-10 bg-gray-50 dark:bg-slate-800 text-gray-500 rounded-2xl flex items-center justify-center">⚙️</button>
               <button onClick={() => setCurrentScreen('MESSAGES')} className="w-10 h-10 bg-green-50 dark:bg-green-900/20 text-green-600 rounded-2xl flex items-center justify-center">💬</button>
             </div>
           </header>
         )}
 
-        <main className={`flex-1 ${isNoScrollScreen ? 'overflow-hidden' : 'overflow-y-auto'} scroll-smooth no-scrollbar relative`}>
+        <main className={`flex-1 ${isNoScrollScreen ? 'overflow-hidden' : 'overflow-y-auto'} scroll-smooth no-scrollbar relative overscroll-none`}>
           {renderScreen()}
-          {/* Add spacer for bottom nav if the screen scrolls, so content isn't hidden behind nav */}
           {isTabScreen && !isNoScrollScreen && <div className="h-24" />}
         </main>
 
