@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { User } from '../types';
+import { User, SystemSettings } from '../types';
 
 interface AuthScreenProps {
   onLogin: (user: User) => void;
+  settings: SystemSettings;
 }
 
 type AuthMode = 'LOGIN' | 'REGISTER';
 
-const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
+const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
   const [mode, setMode] = useState<AuthMode>('LOGIN');
   
   const [name, setName] = useState('');
@@ -53,7 +54,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
         if (mode === 'LOGIN') {
           if (normalizedPhone === ADMIN_USERNAME) {
             if (password === ADMIN_PASSWORD) {
-              const adminUser: User = { id: 'admin-001', name: 'Tamim Hasan Shaon', phone: ADMIN_USERNAME, isAdmin: true };
+              const savedAdmin = users.find(u => u.phone.toLowerCase() === ADMIN_USERNAME);
+              const adminUser: User = savedAdmin || { id: 'admin-001', name: 'Tamim Hasan Shaon', phone: ADMIN_USERNAME, isAdmin: true };
               onLogin(adminUser);
               return;
             } else {
@@ -65,7 +67,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
 
           if (normalizedPhone === GUEST_USER_ID) {
             if (password === GUEST_USER_PASS) {
-              const normalUser: User = { id: 'u-guest-001', name: 'Regular User', phone: GUEST_USER_ID, isAdmin: false };
+              const savedGuest = users.find(u => u.phone.toLowerCase() === GUEST_USER_ID);
+              const normalUser: User = savedGuest || { id: 'u-guest-001', name: 'Regular User', phone: GUEST_USER_ID, isAdmin: false };
               onLogin(normalUser);
               return;
             } else {
@@ -153,7 +156,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
           <div className="w-48 h-48 mx-auto mb-4 flex items-center justify-center bg-white dark:bg-slate-900 rounded-[40px] shadow-2xl shadow-green-100 dark:shadow-none border border-green-50 dark:border-slate-800 p-2 overflow-hidden relative">
              <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent opacity-50"></div>
              <img 
-              src="https://raw.githubusercontent.com/BismillahSupermarket/Assets/main/logo.png" 
+              src={settings.storeLogo} 
               alt="Bismillah Supermarket Logo" 
               className="w-full h-full object-contain relative z-10"
               onError={(e) => {

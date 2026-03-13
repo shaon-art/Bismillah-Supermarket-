@@ -37,7 +37,9 @@ const CartScreen: React.FC<CartScreenProps> = ({
   const [showCopyTooltip, setShowCopyTooltip] = useState(false);
   const t = TRANSLATIONS[lang];
   
-  const PAYMENT_NUMBER = '01799261218';
+  const BKASH_NUMBER = '01978501415';
+  const NAGAD_NUMBER = '01978501415';
+  const currentPaymentNumber = selectedMethod === 'BKASH' ? BKASH_NUMBER : NAGAD_NUMBER;
 
   const [selectedAddrId, setSelectedAddrId] = useState(addresses.find(a => a.isDefault)?.id || addresses[0]?.id || '');
 
@@ -134,7 +136,7 @@ ${paymentDetailsInfo}
   };
 
   const handleCopyNumber = () => {
-    navigator.clipboard.writeText(PAYMENT_NUMBER);
+    navigator.clipboard.writeText(currentPaymentNumber);
     setShowCopyTooltip(true);
     setTimeout(() => setShowCopyTooltip(false), 2000);
   };
@@ -262,7 +264,7 @@ ${paymentDetailsInfo}
                       {lang === 'bn' ? 'টাকা পাঠানোর নম্বর (Personal)' : 'Send Money Number (Personal)'}
                     </p>
                     <div className="flex items-center justify-between bg-white/5 rounded-2xl p-4 border border-white/10 backdrop-blur-sm">
-                       <span className="text-xl font-black tracking-widest">{PAYMENT_NUMBER}</span>
+                       <span className="text-xl font-black tracking-widest">{currentPaymentNumber}</span>
                        <button 
                          onClick={handleCopyNumber}
                          className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all relative"

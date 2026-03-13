@@ -197,6 +197,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
       <div className="bg-white dark:bg-slate-900 rounded-[32px] shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden">
         <MenuOption icon="📦" title={t.ORDER_HISTORY} onClick={() => onNavigate('ORDERS')} />
         <MenuOption icon="📍" title={t.DELIVERY_ADDRESS} onClick={() => onNavigate('ADDRESS_LIST')} />
+        <MenuOption icon="🧮" title={lang === 'bn' ? 'বাজার ক্যালকুলেটর' : 'Bazar Calculator'} onClick={() => onNavigate('BAZAR_CALCULATOR')} />
         <MenuOption icon="⚙️" title={t.SETTINGS} onClick={() => onNavigate('SETTINGS')} />
         <MenuOption icon="🚪" title={t.LOGOUT} isDanger last onClick={() => setShowLogoutConfirm(true)} />
       </div>

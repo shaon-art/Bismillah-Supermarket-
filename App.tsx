@@ -19,6 +19,7 @@ import UserManagementScreen from './screens/UserManagementScreen';
 import AdminControlScreen from './screens/AdminControlScreen';
 import CategoryManagementScreen from './screens/CategoryManagementScreen';
 import MessagingScreen from './screens/MessagingScreen';
+import BazarCalculatorScreen from './screens/BazarCalculatorScreen';
 import { GoogleGenAI } from "@google/genai";
 import { storage } from './utils/storage';
 
@@ -39,6 +40,9 @@ const Logo: React.FC<{ settings: SystemSettings, onClick: () => void }> = ({ set
           src={settings.storeLogo} 
           alt="Logo" 
           className="w-full h-full object-contain"
+          onError={(e) => {
+            (e.target as any).src = "https://cdn-icons-png.flaticon.com/512/3724/3724720.png";
+          }}
         />
       </div>
       <div className="flex flex-col">
@@ -63,7 +67,14 @@ const SplashScreen: React.FC<{ onFinish: () => void, logo: string }> = ({ onFini
     <div className="fixed inset-0 z-[9999] bg-white dark:bg-slate-950 flex flex-col items-center justify-center animate-fadeIn px-6">
       <div className="w-52 h-52 mb-8 bg-white dark:bg-slate-900 rounded-[40px] shadow-2xl shadow-green-100 dark:shadow-none border border-green-50 dark:border-slate-800 flex items-center justify-center relative overflow-hidden p-6 animate-[bounce_2s_infinite]">
          <div className="absolute inset-0 bg-gradient-to-tr from-green-500/5 to-transparent"></div>
-         <img src={logo} alt="Store Logo" className="w-full h-full object-contain relative z-10 drop-shadow-md" />
+         <img 
+          src={logo} 
+          alt="Store Logo" 
+          className="w-full h-full object-contain relative z-10 drop-shadow-md" 
+          onError={(e) => {
+            (e.target as any).src = "https://cdn-icons-png.flaticon.com/512/3724/3724720.png";
+          }}
+        />
       </div>
       <div className="text-center space-y-3">
         <h1 className="text-2xl font-black text-green-800 dark:text-green-400 leading-tight">
@@ -273,6 +284,25 @@ const App: React.FC = () => {
       storage.save('orders_v1', newOrders);
   };
 
+  const handleUpdateUser = (updatedUser: User) => {
+    setCurrentUser(updatedUser);
+    storage.save('currentUser', updatedUser);
+    
+    // Also update the user in the global users list to persist changes across logins
+    const users = storage.getUsers();
+    const index = users.findIndex(u => u.id === updatedUser.id);
+    
+    let updatedUsers;
+    if (index !== -1) {
+      updatedUsers = users.map(u => u.id === updatedUser.id ? updatedUser : u);
+    } else {
+      // If user not in list (e.g. special admin/guest account), add them
+      updatedUsers = [...users, updatedUser];
+    }
+    
+    storage.save('users', updatedUsers);
+  };
+
   const handleLogin = (user: User) => {
     setCurrentUser(user);
     storage.save('currentUser', user);
@@ -357,11 +387,11 @@ const App: React.FC = () => {
     }
 
     switch (currentScreen) {
-      case 'AUTH': return <AuthScreen onLogin={handleLogin} />;
+      case 'AUTH': return <AuthScreen onLogin={handleLogin} settings={systemSettings} />;
       case 'HOME': return <HomeScreen products={products} categories={categories} recentlyViewed={products.filter(p => recentlyViewedIds.includes(p.id))} onProductClick={handleProductClick} onAddToCart={addToCart} onNavigate={setCurrentScreen} onCategoryClick={handleCategoryClick} lang={language} settings={systemSettings} />;
       case 'CATEGORIES': return <CategoryScreen products={products} categories={categories} onProductClick={handleProductClick} onAddToCart={addToCart} settings={systemSettings} initialCategoryId={targetCategory || undefined} />;
       case 'CART': return <CartScreen cart={cart} addresses={addresses} onUpdateQty={(id, d) => setCart(p => p.map(i => i.id === id ? {...i, quantity: Math.max(1, i.quantity+d)} : i))} onRemove={id => setCart(p => p.filter(i => i.id !== id))} onClearCart={() => setCart([])} onPlaceOrder={(m, d, a) => { const newOrders = [{ id: `ORD-${Date.now()}`, date: 'Just now', total: cart.reduce((a,c)=>a+(c.price*c.quantity),0)+systemSettings.deliveryCharge, status: 'PENDING' as OrderStatus, itemsCount: cart.length, items: cart.map(i=>({name:i.name, quantity:i.quantity, price:i.price})), paymentMethod: m, deliveryAddress: a }, ...orders]; handleUpdateOrders(newOrders); setCart([]); setCurrentScreen('ORDERS'); }} onManageAddresses={() => setCurrentScreen('ADDRESS_LIST')} lang={language} isStoreOpen={systemSettings.isStoreOpen} deliveryCharge={systemSettings.deliveryCharge} supportPhone={systemSettings.supportPhone} />;
-      case 'PROFILE': return <ProfileScreen currentUser={currentUser!} isAdmin={currentUser!.isAdmin} onLogout={handleLogout} onUpdateUser={u => {setCurrentUser(u); storage.save('currentUser', u);}} onNavigate={setCurrentScreen} lang={language} />;
+      case 'PROFILE': return <ProfileScreen currentUser={currentUser!} isAdmin={currentUser!.isAdmin} onLogout={handleLogout} onUpdateUser={handleUpdateUser} onNavigate={setCurrentScreen} lang={language} />;
       case 'MESSAGES': return <MessagingScreen messages={messages} onSendMessage={handleSendMessage} isTyping={isTyping} onBack={() => setCurrentScreen('HOME')} lang={language} settings={systemSettings} />;
       case 'ORDERS': return <OrderListScreen orders={orders} isAdmin={currentUser!.isAdmin} onBack={() => setCurrentScreen('PROFILE')} onCancelOrder={id => handleUpdateOrders(orders.map(o=>o.id===id?{...o,status:'CANCELED'}:o))} onAcceptOrder={id => handleUpdateOrders(orders.map(o=>o.id===id?{...o,status:'ACCEPTED'}:o))} onTrackOrder={o => {setSelectedOrderForTracking(o); setCurrentScreen('TRACKING');}} lang={language} deliveryCharge={systemSettings.deliveryCharge} />;
       case 'TRACKING': return selectedOrderForTracking ? <TrackingScreen order={selectedOrderForTracking} isAdmin={currentUser!.isAdmin} onBack={() => setCurrentScreen('ORDERS')} onUpdateStatus={(id, s) => handleUpdateOrders(orders.map(o=>o.id===id?{...o,status:s}:o))} /> : null;
@@ -372,6 +402,7 @@ const App: React.FC = () => {
       case 'CATEGORY_MANAGEMENT': return <CategoryManagementScreen categories={categories} onBack={() => setCurrentScreen('ADMIN_CONTROL')} onAddCategory={handleAddCategory} onUpdateCategory={handleUpdateCategory} onDeleteCategory={handleDeleteCategory} lang={language} />;
       case 'USER_MANAGEMENT': return <UserManagementScreen onBack={() => setCurrentScreen('ADMIN_CONTROL')} lang={language} />;
       case 'ADDRESS_LIST': return <AddressListScreen addresses={addresses} onBack={() => setCurrentScreen('PROFILE')} onAddAddress={a=>setAddresses(p=>[...p,a])} onUpdateAddress={a=>setAddresses(p=>p.map(i=>i.id===a.id?a:i))} onDeleteAddress={id=>setAddresses(p=>p.filter(i=>i.id!==id))} onSetDefault={id=>setAddresses(p=>p.map(i=>({...i,isDefault:i.id===id})))} />;
+      case 'BAZAR_CALCULATOR': return <BazarCalculatorScreen onBack={() => setCurrentScreen('PROFILE')} lang={language} />;
       case 'COUPONS': return <CouponScreen onBack={() => setCurrentScreen('HOME')} />;
       default: return <HomeScreen products={products} categories={categories} recentlyViewed={[]} onProductClick={handleProductClick} onAddToCart={addToCart} onNavigate={setCurrentScreen} onCategoryClick={handleCategoryClick} lang={language} settings={systemSettings} />;
     }
