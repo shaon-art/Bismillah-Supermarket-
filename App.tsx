@@ -382,7 +382,7 @@ const App: React.FC = () => {
   }
 
   const isTabScreen = ['HOME', 'CATEGORIES', 'CART', 'PROFILE', 'SETTINGS'].includes(currentScreen);
-  const isNoScrollScreen = ['CATEGORIES', 'MESSAGES'].includes(currentScreen);
+  const isNoScrollScreen = ['CATEGORIES', 'MESSAGES', 'CART'].includes(currentScreen);
 
   return (
     <div className={`max-w-md mx-auto h-[100dvh] w-full ${isDarkMode ? 'dark' : ''} bg-gray-50 dark:bg-slate-950 overflow-hidden`}>

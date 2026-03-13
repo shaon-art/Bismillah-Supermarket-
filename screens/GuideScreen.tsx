@@ -106,13 +106,16 @@ const GuideScreen: React.FC<GuideScreenProps> = ({ onBack }) => {
       </section>
 
       {/* Developer Profile Section */}
-      <section className="mt-10 p-6 bg-slate-900 rounded-3xl text-white shadow-xl relative overflow-hidden">
+      <section 
+        onClick={() => window.open('https://www.facebook.com/tamimhasanshaon2', '_blank')}
+        className="mt-10 p-6 bg-slate-900 rounded-3xl text-white shadow-xl relative overflow-hidden cursor-pointer active:scale-95 transition-transform group"
+      >
         <div className="absolute top-0 right-0 w-40 h-40 bg-green-500/20 rounded-full -mr-20 -mt-20 blur-3xl"></div>
         <div className="relative z-10 space-y-4">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-green-600 rounded-2xl flex items-center justify-center text-3xl shadow-lg border border-green-500/50">👨‍💻</div>
+            <div className="w-14 h-14 bg-green-600 rounded-2xl flex items-center justify-center text-3xl shadow-lg border border-green-500/50 group-hover:scale-110 transition-transform">👨‍💻</div>
             <div>
-              <h4 className="text-xl font-black text-white leading-tight">Tamim Hasan Shaon</h4>
+              <h4 className="text-xl font-black text-white leading-tight group-hover:text-green-400 transition-colors">Tamim Hasan Shaon</h4>
               <p className="text-green-400 text-xs font-bold uppercase tracking-widest">AYAT'S STUDIO™</p>
             </div>
           </div>

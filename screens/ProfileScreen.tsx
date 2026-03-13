@@ -48,7 +48,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
   };
 
   const handleDeveloperClick = () => {
-    window.open('https://www.facebook.com/tamim.shaon.5', '_blank');
+    window.open('https://www.facebook.com/tamimhasanshaon2', '_blank');
   };
 
   return (
