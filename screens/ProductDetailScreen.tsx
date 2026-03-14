@@ -112,7 +112,8 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-950 min-h-full flex flex-col animate-fadeIn transition-colors">
+    <div className="bg-white dark:bg-slate-950 min-h-full flex flex-col transition-colors relative">
+      <div className="animate-fadeIn">
       <div className="relative h-[40vh] w-full bg-gray-50 dark:bg-slate-900">
         <img src={product.image} alt={product.name} className="w-full h-full object-contain" />
         
@@ -240,10 +241,11 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
           <span>{t.ADD_TO_CART}</span>
         </button>
       </div>
+      </div>
 
       {isAdmin && showEditModal && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 animate-fadeIn overflow-y-auto bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl p-6 shadow-2xl relative transition-colors my-10 border border-white/10">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl p-6 shadow-2xl relative transition-colors my-auto border border-white/10 animate-scaleIn">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{lang === 'bn' ? 'পণ্য তথ্য পরিবর্তন করুন' : 'Edit Product'}</h3>
             <div className="space-y-4 mb-6 max-h-[60vh] overflow-y-auto pr-2 no-scrollbar">
               <div className="flex flex-col items-center gap-3">
@@ -255,12 +257,12 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
                  </div>
                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageChange} />
               </div>
-              <input type="text" value={editProd.name} onChange={e => setEditProd({...editProd, name: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border dark:border-slate-700 outline-none text-sm font-bold dark:text-white" />
+              <input type="text" value={editProd.name} onChange={e => setEditProd(prev => ({...prev, name: e.target.value}))} className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border dark:border-slate-700 outline-none text-sm font-bold dark:text-white" />
               
               <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">
                 <span className="text-xs font-bold dark:text-white">{lang === 'bn' ? 'পণ্যটি কি লাইভ থাকবে?' : 'Active Status'}</span>
                 <button 
-                  onClick={() => setEditProd({...editProd, isActive: !editProd.isActive})}
+                  onClick={() => setEditProd(prev => ({...prev, isActive: !prev.isActive}))}
                   className={`w-12 h-6 rounded-full relative transition-colors ${editProd.isActive ? 'bg-green-600' : 'bg-gray-300'}`}
                 >
                   <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editProd.isActive ? 'right-1' : 'left-1'}`} />
@@ -270,31 +272,31 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
               <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1">
                   <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">{lang === 'bn' ? 'মূল্য' : 'Price'}</label>
-                  <input type="number" value={editProd.price} onChange={e => setEditProd({...editProd, price: Number(e.target.value)})} className="w-full px-3 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border dark:border-slate-700 outline-none text-xs font-bold dark:text-white" />
+                  <input type="number" value={editProd.price} onChange={e => setEditProd(prev => ({...prev, price: Number(e.target.value)}))} className="w-full px-3 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border dark:border-slate-700 outline-none text-xs font-bold dark:text-white" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">{lang === 'bn' ? 'পুরাতন' : 'Old'}</label>
-                  <input type="number" value={editProd.oldPrice || 0} onChange={e => setEditProd({...editProd, oldPrice: Number(e.target.value)})} className="w-full px-3 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border dark:border-slate-700 outline-none text-xs font-bold dark:text-white" />
+                  <input type="number" value={editProd.oldPrice || 0} onChange={e => setEditProd(prev => ({...prev, oldPrice: Number(e.target.value)}))} className="w-full px-3 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border dark:border-slate-700 outline-none text-xs font-bold dark:text-white" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[9px] font-black text-blue-500 uppercase tracking-widest ml-1">Disc%</label>
-                  <input type="number" value={editProd.discountPercentage || 0} onChange={e => setEditProd({...editProd, discountPercentage: Number(e.target.value)})} className="w-full px-3 py-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 outline-none text-xs font-black text-blue-600 dark:text-blue-400" />
+                  <input type="number" value={editProd.discountPercentage || 0} onChange={e => setEditProd(prev => ({...prev, discountPercentage: Number(e.target.value)}))} className="w-full px-3 py-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 outline-none text-xs font-black text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
-              <select value={editProd.category} onChange={e => setEditProd({...editProd, category: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border dark:border-slate-700 outline-none text-sm font-bold dark:text-white">
+              <select value={editProd.category} onChange={e => setEditProd(prev => ({...prev, category: e.target.value}))} className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border dark:border-slate-700 outline-none text-sm font-bold dark:text-white">
                 {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{lang === 'bn' ? 'ইউনিট' : 'Unit'}</label>
-                  <input type="text" value={editProd.unit} onChange={e => setEditProd({...editProd, unit: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border dark:border-slate-700 outline-none text-sm font-bold dark:text-white" />
+                  <input type="text" value={editProd.unit} onChange={e => setEditProd(prev => ({...prev, unit: e.target.value}))} className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border dark:border-slate-700 outline-none text-sm font-bold dark:text-white" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{lang === 'bn' ? 'স্টক' : 'Stock'}</label>
-                  <input type="number" value={editProd.stock} onChange={e => setEditProd({...editProd, stock: Number(e.target.value)})} className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border dark:border-slate-700 outline-none text-sm font-bold dark:text-white" />
+                  <input type="number" value={editProd.stock} onChange={e => setEditProd(prev => ({...prev, stock: Number(e.target.value)}))} className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border dark:border-slate-700 outline-none text-sm font-bold dark:text-white" />
                 </div>
               </div>
-              <textarea value={editProd.description} onChange={e => setEditProd({...editProd, description: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border dark:border-slate-700 outline-none text-sm resize-none dark:text-white" rows={3} />
+              <textarea value={editProd.description} onChange={e => setEditProd(prev => ({...prev, description: e.target.value}))} className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border dark:border-slate-700 outline-none text-sm resize-none dark:text-white" rows={3} />
               
               {editError && (
                 <div className="bg-red-50 border border-red-100 rounded-xl p-3 animate-fadeIn">
@@ -312,8 +314,8 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
 
       {/* Delete Confirmation Modal */}
       {isAdmin && showDeleteConfirm && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 animate-fadeIn bg-black/70 backdrop-blur-md">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[32px] p-8 shadow-2xl relative border border-red-500/20 flex flex-col items-center text-center">
+        <div className="fixed inset-0 z-[210] flex items-center justify-center p-6 bg-black/70 backdrop-blur-md">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[32px] p-8 shadow-2xl relative border border-red-500/20 flex flex-col items-center text-center animate-scaleIn">
             <div className="w-20 h-20 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center text-4xl mb-6 animate-bounce">
               🗑️
             </div>

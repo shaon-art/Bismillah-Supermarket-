@@ -82,8 +82,9 @@ const CategoryManagementScreen: React.FC<CategoryManagementScreenProps> = ({
   };
 
   return (
-    <div className="animate-fadeIn min-h-full bg-slate-50 dark:bg-slate-950 flex flex-col pb-20 transition-colors">
-      <div className="bg-slate-900 px-5 py-6 sticky top-0 z-50 shadow-xl text-white">
+    <div className="min-h-full bg-slate-50 dark:bg-slate-950 flex flex-col pb-20 transition-colors relative">
+      <div className="animate-fadeIn">
+        <div className="bg-slate-900 px-5 py-6 sticky top-0 z-50 shadow-xl text-white">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-4">
             <button onClick={onBack} className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white active:scale-90 transition-transform">
@@ -132,10 +133,11 @@ const CategoryManagementScreen: React.FC<CategoryManagementScreenProps> = ({
           </div>
         ))}
       </div>
+      </div>
 
       {showModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-fadeIn bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[32px] p-6 shadow-2xl relative border border-white/10 animate-[scaleIn_0.3s_ease-out]">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[32px] p-6 shadow-2xl relative my-auto border border-white/10 animate-scaleIn">
             <h3 className="text-lg font-black text-gray-900 dark:text-white mb-6">
               {editingCat ? (lang === 'bn' ? 'ক্যাটাগরি পরিবর্তন' : 'Edit Category') : (lang === 'bn' ? 'নতুন ক্যাটাগরি' : 'New Category')}
             </h3>
@@ -200,8 +202,8 @@ const CategoryManagementScreen: React.FC<CategoryManagementScreenProps> = ({
       )}
 
       {showDeleteModal && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 animate-fadeIn bg-black/70 backdrop-blur-md">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[32px] p-8 shadow-2xl relative border border-red-500/20 flex flex-col items-center text-center">
+        <div className="fixed inset-0 z-[210] flex items-center justify-center p-6 bg-black/70 backdrop-blur-md">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[32px] p-8 shadow-2xl relative border border-red-500/20 flex flex-col items-center text-center animate-scaleIn">
             <div className="w-20 h-20 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center text-4xl mb-6 animate-bounce">
               🗑️
             </div>

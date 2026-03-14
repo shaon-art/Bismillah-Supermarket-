@@ -38,7 +38,7 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
   const [discountPercent, setDiscountPercent] = useState<string>('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const t = TRANSLATIONS[lang];
+  const t = (TRANSLATIONS as any)[lang] || TRANSLATIONS.bn;
 
   // Form state
   const [formData, setFormData] = useState<Partial<Product>>({
@@ -46,7 +46,7 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
     price: 0,
     oldPrice: 0,
     discountPercentage: 0,
-    category: categories[0]?.id || '1',
+    category: (categories && categories.length > 0) ? categories[0].id : '1',
     unit: lang === 'bn' ? '১ কেজি' : '1 kg',
     stock: 0,
     description: '',
@@ -96,18 +96,18 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
   };
 
   const handleOpenEdit = (p: Product) => {
+    if (!p) return;
     setEditingProduct(p);
     setFormData({ ...p });
     
-    // Calculate existing discount % if not explicitly stored
-    if (p.discountPercentage) {
-      setDiscountPercent(p.discountPercentage.toString());
+    let dp = '';
+    if (p.discountPercentage !== undefined && p.discountPercentage !== null && p.discountPercentage > 0) {
+      dp = String(p.discountPercentage);
     } else if (p.oldPrice && p.oldPrice > p.price) {
       const d = Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100);
-      setDiscountPercent(d.toString());
-    } else {
-      setDiscountPercent('');
+      dp = d.toString();
     }
+    setDiscountPercent(dp);
     
     setError('');
     setShowModal(true);
@@ -202,7 +202,7 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
     }
 
     if (editingProduct) {
-      onUpdateProduct({ ...editingProduct, ...formData } as Product);
+      onUpdateProduct(formData as Product);
     } else {
       onAddProduct({
         ...formData,
@@ -217,9 +217,10 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
   };
 
   return (
-    <div className="animate-fadeIn min-h-full bg-slate-50 dark:bg-slate-950 flex flex-col pb-24 transition-colors">
-      {/* Admin Header */}
-      <div className="bg-slate-900 px-5 py-6 sticky top-0 z-50 shadow-lg text-white">
+    <div className="min-h-full bg-slate-50 dark:bg-slate-950 flex flex-col pb-24 transition-colors relative">
+      <div className="animate-fadeIn">
+        {/* Admin Header */}
+        <div className="bg-slate-900 px-5 py-6 sticky top-0 z-50 shadow-lg text-white">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-4">
             <button onClick={onBack} className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white active:scale-90 transition-transform">
@@ -403,11 +404,12 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
           </div>
         )}
       </div>
+      </div>
 
       {/* Unified Add/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-fadeIn overflow-y-auto bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[32px] p-6 shadow-2xl relative transition-colors my-10 border border-white/10">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[32px] p-6 shadow-2xl relative my-auto border border-white/10 animate-scaleIn">
             <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4">
               {editingProduct 
                 ? (lang === 'bn' ? 'পণ্য পরিবর্তন' : 'Edit Product') 
@@ -433,8 +435,8 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{lang === 'bn' ? 'পণ্যের নাম' : 'Product Name'}</label>
                 <input 
                   type="text" 
-                  value={formData.name} 
-                  onChange={e => setFormData({...formData, name: e.target.value})} 
+                  value={formData.name || ''} 
+                  onChange={e => setFormData(prev => ({...prev, name: e.target.value}))} 
                   placeholder={lang === 'bn' ? 'যেমন: ফ্রেশ আপেল' : 'e.g. Fresh Apple'}
                   className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 outline-none text-sm font-bold dark:text-white focus:ring-2 focus:ring-green-500/20" 
                 />
@@ -481,19 +483,19 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{lang === 'bn' ? 'ক্যাটাগরি' : 'Category'}</label>
                   <select 
-                    value={formData.category} 
-                    onChange={e => setFormData({...formData, category: e.target.value})} 
+                    value={formData.category || ''} 
+                    onChange={e => setFormData(prev => ({...prev, category: e.target.value}))} 
                     className="w-full px-3 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 outline-none text-xs font-bold dark:text-white"
                   >
-                    {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+                    {(categories || []).map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{lang === 'bn' ? 'ইউনিট' : 'Unit'}</label>
                   <input 
                     type="text" 
-                    value={formData.unit} 
-                    onChange={e => setFormData({...formData, unit: e.target.value})} 
+                    value={formData.unit || ''} 
+                    onChange={e => setFormData(prev => ({...prev, unit: e.target.value}))} 
                     placeholder="১ কেজি"
                     className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 outline-none text-sm font-bold dark:text-white" 
                   />
@@ -506,14 +508,14 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
                   <input 
                     type="number" 
                     value={formData.stock || ''} 
-                    onChange={e => setFormData({...formData, stock: Number(e.target.value)})} 
+                    onChange={e => setFormData(prev => ({...prev, stock: Number(e.target.value)}))} 
                     className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 outline-none text-sm font-bold dark:text-white" 
                   />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{lang === 'bn' ? 'অবস্থা' : 'Status'}</label>
                   <button 
-                    onClick={() => setFormData({...formData, isActive: !formData.isActive})}
+                    onClick={() => setFormData(prev => ({...prev, isActive: !prev.isActive}))}
                     className={`w-full py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                       formData.isActive ? 'bg-green-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
                     }`}
@@ -526,8 +528,8 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{lang === 'bn' ? 'বিস্তারিত বিবরণ' : 'Description'}</label>
                 <textarea 
-                  value={formData.description} 
-                  onChange={e => setFormData({...formData, description: e.target.value})} 
+                  value={formData.description || ''} 
+                  onChange={e => setFormData(prev => ({...prev, description: e.target.value}))} 
                   placeholder={lang === 'bn' ? 'পণ্য সম্পর্কে কিছু লিখুন...' : 'Enter details...'}
                   className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 outline-none text-xs font-medium dark:text-white resize-none" 
                   rows={3} 
@@ -561,8 +563,8 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
 
       {/* Custom Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 animate-fadeIn bg-black/70 backdrop-blur-md">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[32px] p-8 shadow-2xl relative border border-red-500/20 flex flex-col items-center text-center">
+        <div className="fixed inset-0 z-[210] flex items-center justify-center p-6 bg-black/70 backdrop-blur-md">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[32px] p-8 shadow-2xl relative border border-red-500/20 flex flex-col items-center text-center animate-scaleIn">
             <div className="w-20 h-20 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center text-4xl mb-6 animate-bounce">
               🗑️
             </div>

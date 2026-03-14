@@ -105,8 +105,9 @@ const UserManagementScreen: React.FC<UserManagementScreenProps> = ({ onBack, lan
   };
 
   return (
-    <div className="animate-fadeIn min-h-full bg-slate-50 dark:bg-slate-950 flex flex-col pb-20 transition-colors">
-      <div className="bg-slate-900 px-5 py-6 sticky top-0 z-50 shadow-xl text-white">
+    <div className="min-h-full bg-slate-50 dark:bg-slate-950 flex flex-col pb-20 transition-colors relative">
+      <div className="animate-fadeIn">
+        <div className="bg-slate-900 px-5 py-6 sticky top-0 z-50 shadow-xl text-white">
         <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-4">
                 <button onClick={onBack} className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white active:scale-90 transition-transform">
@@ -193,10 +194,11 @@ const UserManagementScreen: React.FC<UserManagementScreenProps> = ({ onBack, lan
           ))}
         </div>
       </div>
+      </div>
 
       {showEditModal && editingUser && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-fadeIn bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[32px] p-6 shadow-2xl relative border border-white/10 overflow-y-auto max-h-[85vh] no-scrollbar">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[32px] p-6 shadow-2xl relative border border-white/10 overflow-y-auto max-h-[85vh] no-scrollbar animate-scaleIn">
             <h3 className="text-lg font-black text-gray-900 dark:text-white mb-6">
               {lang === 'bn' ? 'প্রোফাইল তথ্য পরিবর্তন' : 'Edit Member Profile'}
             </h3>

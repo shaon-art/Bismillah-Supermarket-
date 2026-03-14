@@ -102,8 +102,9 @@ const OrderListScreen: React.FC<OrderListScreenProps> = ({ orders, isAdmin, onBa
   const isNextDisabled = !selectedReason || (selectedReason === otherReasonLabel && !customReason.trim());
 
   return (
-    <div className="animate-fadeIn min-h-full bg-gray-50 dark:bg-slate-950 pb-10 relative transition-colors">
-      <div className="bg-white dark:bg-slate-900 px-5 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center gap-4 sticky top-0 z-10 transition-colors">
+    <div className="min-h-full bg-gray-50 dark:bg-slate-950 pb-10 relative transition-colors">
+      <div className="animate-fadeIn">
+        <div className="bg-white dark:bg-slate-900 px-5 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center gap-4 sticky top-0 z-10 transition-colors">
         <button 
           onClick={onBack}
           className="w-10 h-10 rounded-full bg-gray-50 dark:bg-slate-800 flex items-center justify-center text-gray-600 dark:text-gray-400 active:scale-90 transition-transform"
@@ -245,11 +246,11 @@ const OrderListScreen: React.FC<OrderListScreenProps> = ({ orders, isAdmin, onBa
           );
         })}
       </div>
+      </div>
 
       {showReasonModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fadeIn">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowReasonModal(false)}></div>
-          <div className="bg-white dark:bg-slate-900 w-full max-sm rounded-3xl p-6 shadow-2xl relative transition-colors">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 w-full max-sm rounded-3xl p-6 shadow-2xl relative my-auto transition-colors animate-scaleIn">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{lang === 'bn' ? 'বাতিল করার কারণ' : 'Cancellation Reason'}</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-6 font-medium">{lang === 'bn' ? 'অর্ডারটি কেন বাতিল করতে চাইছেন তা দয়া করে আমাদের জানান।' : 'Please tell us why you want to cancel.'}</p>
             
@@ -296,9 +297,8 @@ const OrderListScreen: React.FC<OrderListScreenProps> = ({ orders, isAdmin, onBa
       )}
 
       {showConfirmModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fadeIn">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowConfirmModal(false)}></div>
-          <div className="bg-white dark:bg-slate-900 w-full max-w-xs rounded-3xl p-6 shadow-2xl relative transition-colors">
+        <div className="fixed inset-0 z-[210] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-xs rounded-3xl p-6 shadow-2xl relative transition-colors animate-scaleIn">
             <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border border-red-100 dark:border-red-900/30">⚠️</div>
             <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center mb-2">{lang === 'bn' ? 'অর্ডার বাতিল করবেন?' : 'Cancel Order?'}</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 text-center mb-6 font-medium leading-relaxed">

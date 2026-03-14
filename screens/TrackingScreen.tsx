@@ -168,7 +168,8 @@ const TrackingScreen: React.FC<TrackingScreenProps> = ({ order, isAdmin, onBack,
   ];
 
   return (
-    <div className="animate-fadeIn min-h-full bg-white dark:bg-slate-950 pb-10 flex flex-col transition-colors">
+    <div className="min-h-full bg-white dark:bg-slate-950 pb-10 flex flex-col transition-colors relative">
+      <div className="animate-fadeIn">
       <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-5 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between sticky top-0 z-40">
         <div className="flex items-center gap-4">
           <button 
@@ -290,6 +291,7 @@ const TrackingScreen: React.FC<TrackingScreenProps> = ({ order, isAdmin, onBack,
           )}
         </div>
       )}
+      </div>
 
       <style>{`
         @keyframes dash { to { stroke-dashoffset: -100; } }

@@ -280,9 +280,11 @@ const App: React.FC = () => {
   };
 
   const handleUpdateProduct = (updatedProduct: Product) => {
-    const newProducts = products.map(p => p.id === updatedProduct.id ? updatedProduct : p);
-    setProducts(newProducts);
-    storage.save('products_v1', newProducts);
+    setProducts(prev => {
+      const newList = prev.map(p => p.id === updatedProduct.id ? updatedProduct : p);
+      storage.save('products_v1', newList);
+      return newList;
+    });
   };
 
   const handleAddProduct = (newProduct: Product) => {

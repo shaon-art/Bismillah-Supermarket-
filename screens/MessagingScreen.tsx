@@ -35,7 +35,8 @@ const MessagingScreen: React.FC<MessagingScreenProps> = ({
   };
 
   return (
-    <div className="animate-fadeIn h-full bg-gray-50 dark:bg-slate-950 flex flex-col transition-colors duration-300">
+    <div className="h-full bg-gray-50 dark:bg-slate-950 flex flex-col transition-colors duration-300 relative">
+      <div className="animate-fadeIn h-full flex flex-col">
       {/* Header */}
       <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg px-5 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center gap-4 sticky top-0 z-40 shadow-sm">
         <button onClick={onBack} className="w-10 h-10 rounded-full bg-gray-50 dark:bg-slate-800 flex items-center justify-center text-gray-600 dark:text-gray-400 active:scale-90 transition-transform">
@@ -119,6 +120,7 @@ const MessagingScreen: React.FC<MessagingScreenProps> = ({
             <span className="text-lg transform -rotate-45 -mt-1 ml-1">✈️</span>
           </button>
         </div>
+      </div>
       </div>
     </div>
   );
