@@ -195,13 +195,19 @@ const GroceryCard: React.FC<{ product: Product; onClick: () => void; onAdd: () =
   const isPopular = product.price > 200 || product.stock < 30;
   
   // Calculated Prices
-  const discount = settings.globalDiscountEnabled ? settings.globalDiscountPercentage : 0;
-  const displayPrice = Math.round(product.price * (1 - discount / 100));
+  const globalDiscount = settings.globalDiscountEnabled ? settings.globalDiscountPercentage : 0;
   const hasGlobalOffer = settings.globalDiscountEnabled && settings.globalDiscountPercentage > 0;
-  const shownOldPrice = hasGlobalOffer ? product.price : product.oldPrice;
-  const individualDiscount = (!hasGlobalOffer && product.oldPrice && product.oldPrice > product.price) 
+  
+  // If product has an individual discount percentage, we use it for the badge
+  const individualDiscount = product.discountPercentage || ((product.oldPrice && product.oldPrice > product.price) 
         ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100) 
-        : 0;
+        : 0);
+
+  // The display price is the product.price (which is the admin-set sale price) 
+  // with global discount applied on top if enabled
+  const displayPrice = Math.round(product.price * (1 - globalDiscount / 100));
+  
+  const shownOldPrice = hasGlobalOffer ? product.price : product.oldPrice;
 
   return (
     <div 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User, SystemSettings } from '../types';
+import { storage } from '../utils/storage';
 
 interface AuthScreenProps {
   onLogin: (user: User) => void;
@@ -42,7 +43,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
     setIsLoading(true);
 
     const ADMIN_USERNAME = 'admin';
-    const ADMIN_PASSWORD = 'shaon224@';
+    const ADMIN_PASSWORD = '22428';
     
     const GUEST_USER_ID = 'i am user';
     const GUEST_USER_PASS = 'user';
@@ -120,7 +121,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
           };
           
           const updatedUsers = [...users, newUser];
-          localStorage.setItem('users', JSON.stringify(updatedUsers));
+          storage.save('users', updatedUsers);
           onLogin(newUser);
         }
       } catch (err) {
@@ -132,7 +133,9 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
   };
 
   const handleForgotPassword = () => {
-    const adminNumber = "8801799261218"; // Admin WhatsApp Number
+    const adminNumber = settings.supportPhone.replace(/\D/g, ''); // Use support phone from settings
+    const fmtPhone = adminNumber.startsWith('88') ? adminNumber : (adminNumber.startsWith('0') ? '88' + adminNumber : '880' + adminNumber);
+    
     let message = "আসসালামু আলাইকুম এডমিন,\n\nআমি আমার বিসমিল্লাহ সুপার মার্কেট অ্যাকাউন্টের পাসওয়ার্ড ভুলে গেছি। দয়া করে আমাকে পাসওয়ার্ড রিসেট করতে সাহায্য করুন।";
 
     if (phone.trim()) {
@@ -141,7 +144,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
         message += `\n(আমি লগইন পেজ থেকে মেসেজটি দিচ্ছি)`;
     }
 
-    const url = `https://wa.me/${adminNumber}?text=${encodeURIComponent(message)}`;
+    const url = `https://wa.me/${fmtPhone}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
   };
 

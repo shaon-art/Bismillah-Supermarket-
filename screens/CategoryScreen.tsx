@@ -94,10 +94,14 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({
             {filteredProducts.map(product => {
               const isAdding = addingId === product.id;
               // Calculate Display Price based on Global Settings
-              const discount = settings.globalDiscountEnabled ? settings.globalDiscountPercentage : 0;
-              const displayPrice = Math.round(product.price * (1 - discount/100));
-              const hasOffer = settings.globalDiscountEnabled && settings.globalDiscountPercentage > 0;
+              const globalDiscount = settings.globalDiscountEnabled ? settings.globalDiscountPercentage : 0;
+              const displayPrice = Math.round(product.price * (1 - globalDiscount/100));
+              const hasGlobalOffer = settings.globalDiscountEnabled && settings.globalDiscountPercentage > 0;
               const isOutOfStock = product.stock <= 0;
+              
+              const individualDiscount = product.discountPercentage || ((product.oldPrice && product.oldPrice > product.price) 
+                    ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100) 
+                    : 0);
 
               return (
                 <div 
@@ -112,9 +116,15 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({
                     <img src={product.image} alt={product.name} className="w-full h-full object-cover mix-blend-overlay" />
                     <img src={product.image} alt={product.name} className="absolute inset-0 w-full h-full object-cover" />
                     
-                    {hasOffer && !isOutOfStock && (
+                    {hasGlobalOffer && !isOutOfStock && (
                       <div className="absolute top-0 left-0 bg-red-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-br-lg shadow-sm z-10">
-                        -{discount}%
+                        -{globalDiscount}%
+                      </div>
+                    )}
+
+                    {!hasGlobalOffer && individualDiscount > 0 && !isOutOfStock && (
+                      <div className="absolute top-0 left-0 bg-orange-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-br-lg shadow-sm z-10">
+                        -{individualDiscount}%
                       </div>
                     )}
                     
@@ -138,10 +148,10 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({
 
                     <div className="flex items-end justify-between mt-2">
                       <div className="flex flex-col">
-                         {hasOffer && (
-                           <span className="text-[9px] text-slate-400 line-through font-bold">৳{product.price}</span>
+                         {(hasGlobalOffer || (product.oldPrice && product.oldPrice > product.price)) && (
+                           <span className="text-[9px] text-slate-400 line-through font-bold">৳{hasGlobalOffer ? product.price : product.oldPrice}</span>
                          )}
-                         <span className={`text-base font-black ${hasOffer ? 'text-red-600 dark:text-red-400' : 'text-green-700 dark:text-green-400'}`}>
+                         <span className={`text-base font-black ${hasGlobalOffer ? 'text-red-600 dark:text-red-400' : 'text-green-700 dark:text-green-400'}`}>
                            ৳{displayPrice}
                          </span>
                       </div>

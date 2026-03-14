@@ -43,13 +43,15 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Price Logic
-  const discount = settings.globalDiscountEnabled ? settings.globalDiscountPercentage : 0;
-  const displayPrice = Math.round(product.price * (1 - discount/100));
-  const hasOffer = settings.globalDiscountEnabled && settings.globalDiscountPercentage > 0;
-  const shownOldPrice = hasOffer ? product.price : product.oldPrice;
-  const individualDiscount = (!hasOffer && product.oldPrice && product.oldPrice > product.price) 
+  const globalDiscount = settings.globalDiscountEnabled ? settings.globalDiscountPercentage : 0;
+  const displayPrice = Math.round(product.price * (1 - globalDiscount/100));
+  const hasGlobalOffer = settings.globalDiscountEnabled && settings.globalDiscountPercentage > 0;
+  
+  const individualDiscount = product.discountPercentage || ((product.oldPrice && product.oldPrice > product.price) 
         ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100) 
-        : 0;
+        : 0);
+  
+  const shownOldPrice = hasGlobalOffer ? product.price : product.oldPrice;
 
   const handleSubmitReview = (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,13 +124,13 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
           </button>
         </div>
         
-        {hasOffer && (
+        {hasGlobalOffer && (
            <div className="absolute bottom-4 left-6 bg-red-600 text-white text-[10px] font-black px-4 py-2 rounded-full shadow-2xl animate-bounce z-10 tracking-widest uppercase">
              Special {settings.globalDiscountPercentage}% Offer Active
            </div>
         )}
         
-        {!hasOffer && individualDiscount > 0 && (
+        {!hasGlobalOffer && individualDiscount > 0 && (
            <div className="absolute bottom-4 left-6 bg-orange-500 text-white text-[10px] font-black px-4 py-2 rounded-full shadow-2xl z-10 tracking-widest uppercase">
              {individualDiscount}% {t.OFF}
            </div>
@@ -265,9 +267,19 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <input type="number" value={editProd.price} onChange={e => setEditProd({...editProd, price: Number(e.target.value)})} className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border dark:border-slate-700 outline-none text-sm font-bold dark:text-white" />
-                <input type="number" value={editProd.oldPrice || 0} onChange={e => setEditProd({...editProd, oldPrice: Number(e.target.value)})} className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border dark:border-slate-700 outline-none text-sm font-bold dark:text-white" />
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">{lang === 'bn' ? 'মূল্য' : 'Price'}</label>
+                  <input type="number" value={editProd.price} onChange={e => setEditProd({...editProd, price: Number(e.target.value)})} className="w-full px-3 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border dark:border-slate-700 outline-none text-xs font-bold dark:text-white" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">{lang === 'bn' ? 'পুরাতন' : 'Old'}</label>
+                  <input type="number" value={editProd.oldPrice || 0} onChange={e => setEditProd({...editProd, oldPrice: Number(e.target.value)})} className="w-full px-3 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border dark:border-slate-700 outline-none text-xs font-bold dark:text-white" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-blue-500 uppercase tracking-widest ml-1">Disc%</label>
+                  <input type="number" value={editProd.discountPercentage || 0} onChange={e => setEditProd({...editProd, discountPercentage: Number(e.target.value)})} className="w-full px-3 py-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 outline-none text-xs font-black text-blue-600 dark:text-blue-400" />
+                </div>
               </div>
               <select value={editProd.category} onChange={e => setEditProd({...editProd, category: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border dark:border-slate-700 outline-none text-sm font-bold dark:text-white">
                 {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}

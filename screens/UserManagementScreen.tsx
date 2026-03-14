@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { User } from '../types';
+import { storage } from '../utils/storage';
 
 interface UserManagementScreenProps {
   onBack: () => void;
@@ -10,16 +11,24 @@ const UserManagementScreen: React.FC<UserManagementScreenProps> = ({ onBack, lan
   const [search, setSearch] = useState('');
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showPassword, setShowPassword] = useState(false); // Toggle password visibility
+  const [showPassword, setShowPassword] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
   
-  // Load users from local storage
-  const users: User[] = useMemo(() => {
-    try {
-      const stored = localStorage.getItem('users') || '[]';
-      return JSON.parse(stored);
-    } catch (e) {
-      return [];
-    }
+  // Load users from storage
+  useEffect(() => {
+    const loadUsers = () => {
+      setUsers(storage.getUsers());
+    };
+    loadUsers();
+    
+    // Subscribe to changes for real-time updates
+    const unsubscribe = storage.subscribe((key, newValue) => {
+      if (key === 'users') {
+        setUsers(newValue || []);
+      }
+    });
+    
+    return unsubscribe;
   }, []);
 
   const filteredUsers = useMemo(() => {
@@ -46,19 +55,18 @@ const UserManagementScreen: React.FC<UserManagementScreenProps> = ({ onBack, lan
   }, [users]);
 
   const handleUpdateUser = (updatedUser: User) => {
-    const allUsers: User[] = JSON.parse(localStorage.getItem('users') || '[]');
+    const allUsers = storage.getUsers();
     const newUsers = allUsers.map(u => u.id === updatedUser.id ? updatedUser : u);
-    localStorage.setItem('users', JSON.stringify(newUsers));
-    // Soft refresh for demo purposes
-    window.location.reload(); 
+    storage.save('users', newUsers);
+    setUsers(newUsers);
   };
 
   const handleDeleteUser = (id: string) => {
     if (window.confirm(lang === 'bn' ? 'আপনি কি নিশ্চিত যে এই ইউজারটিকে চিরতরে মুছে ফেলতে চান?' : 'Are you sure you want to PERMANENTLY delete this user?')) {
-      const allUsers: User[] = JSON.parse(localStorage.getItem('users') || '[]');
+      const allUsers = storage.getUsers();
       const updated = allUsers.filter(u => u.id !== id);
-      localStorage.setItem('users', JSON.stringify(updated));
-      window.location.reload();
+      storage.save('users', updated);
+      setUsers(updated);
     }
   };
 

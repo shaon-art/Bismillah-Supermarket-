@@ -4,6 +4,7 @@ export interface Product {
   name: string;
   price: number;
   oldPrice?: number;
+  discountPercentage?: number;
   category: string;
   image: string;
   unit: string;

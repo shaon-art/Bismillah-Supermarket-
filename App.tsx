@@ -106,16 +106,7 @@ const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>(() => storage.getProducts());
   const [categories, setCategories] = useState<Category[]>(() => storage.getCategories());
   const [orders, setOrders] = useState<Order[]>(() => storage.getOrders());
-  const [addresses, setAddresses] = useState<Address[]>(() => storage.load('addresses_v1', [
-    {
-      id: 'a1',
-      label: 'Home',
-      receiverName: 'মোঃ শরিফুল ইসলাম',
-      phone: '01700-000000',
-      details: 'বাড়ি নং ১২, রোড নং ৫, ধানমন্ডি, ঢাকা',
-      isDefault: true
-    }
-  ]));
+  const [addresses, setAddresses] = useState<Address[]>([]);
   const [systemSettings, setSystemSettings] = useState<SystemSettings>(() => storage.getSettings());
 
   const [isSyncing, setIsSyncing] = useState(false);
@@ -157,6 +148,16 @@ const App: React.FC = () => {
         case 'categories_v1': setCategories(newValue); break;
         case 'orders_v1': setOrders(newValue); break;
         case 'systemSettings_v3': setSystemSettings(newValue); break;
+        case 'users':
+          // If current user is deleted from the global list, log them out
+          // Exclude hardcoded admin and guest accounts from this check
+          if (currentUser && 
+              currentUser.id !== 'admin-001' && 
+              currentUser.id !== 'u-guest-001' && 
+              !newValue.find((u: User) => u.id === currentUser.id)) {
+             handleLogout();
+          }
+          break;
         // Add other keys if needed to be synced across users immediately (e.g. maintenance mode)
       }
     });
@@ -176,14 +177,22 @@ const App: React.FC = () => {
       if (JSON.stringify(latestProducts) !== JSON.stringify(products)) {
          setProducts(latestProducts);
       }
-      // Note: We don't strictly poll everything to save resources in this prototype
+
+      // Check if user still exists in global list
+      // Exclude hardcoded admin and guest accounts from this check
+      if (currentUser && currentUser.id !== 'admin-001' && currentUser.id !== 'u-guest-001') {
+        const latestUsers = storage.getUsers();
+        if (!latestUsers.find(u => u.id === currentUser.id)) {
+          handleLogout();
+        }
+      }
     }, 2000); // Check every 2 seconds
 
     return () => {
       unsubscribe();
       clearInterval(intervalId);
     };
-  }, [systemSettings, products]); // Deps indicate what we are comparing against
+  }, [systemSettings, products, currentUser]); // Deps indicate what we are comparing against
 
   // --- Initial Setup ---
   useEffect(() => {
@@ -212,10 +221,38 @@ const App: React.FC = () => {
   // --- User Action Persisters ---
   // Note: We only save user-specific data here. Admin data is saved via explicit handlers.
   useEffect(() => {
+    if (currentUser) {
+      const userAddressesKey = `addresses_${currentUser.id}`;
+      const savedAddresses = storage.load<Address[]>(userAddressesKey, []);
+      
+      if (savedAddresses.length > 0) {
+        setAddresses(savedAddresses);
+      } else {
+        // Default address for new user
+        setAddresses([
+          {
+            id: 'a1',
+            label: 'Home',
+            receiverName: currentUser.name,
+            phone: currentUser.phone,
+            details: '',
+            isDefault: true
+          }
+        ]);
+      }
+    } else {
+      setAddresses([]);
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
     storage.save('cart', cart);
     storage.save('favorites', favorites);
     storage.save('recentlyViewedIds', recentlyViewedIds);
-    storage.save('addresses_v1', addresses); // User addresses
+    
+    if (currentUser && addresses.length > 0) {
+      storage.save(`addresses_${currentUser.id}`, addresses);
+    }
     
     // UI State
     storage.save('currentScreen', currentScreen);
@@ -224,7 +261,7 @@ const App: React.FC = () => {
     
     storage.save('notificationsEnabled', notificationsEnabled);
     storage.save('soundsEnabled', soundsEnabled);
-  }, [cart, favorites, recentlyViewedIds, addresses, currentScreen, selectedProduct, selectedOrderForTracking, notificationsEnabled, soundsEnabled]);
+  }, [cart, favorites, recentlyViewedIds, addresses, currentScreen, selectedProduct, selectedOrderForTracking, notificationsEnabled, soundsEnabled, currentUser]);
 
   useEffect(() => {
     localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');

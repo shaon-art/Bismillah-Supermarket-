@@ -45,6 +45,7 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
     name: '',
     price: 0,
     oldPrice: 0,
+    discountPercentage: 0,
     category: categories[0]?.id || '1',
     unit: lang === 'bn' ? '১ কেজি' : '1 kg',
     stock: 0,
@@ -81,6 +82,7 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
       name: '',
       price: 0,
       oldPrice: 0,
+      discountPercentage: 0,
       category: categories[0]?.id || '1',
       unit: lang === 'bn' ? '১ কেজি' : '1 kg',
       stock: 100,
@@ -97,8 +99,10 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
     setEditingProduct(p);
     setFormData({ ...p });
     
-    // Calculate existing discount %
-    if (p.oldPrice && p.oldPrice > p.price) {
+    // Calculate existing discount % if not explicitly stored
+    if (p.discountPercentage) {
+      setDiscountPercent(p.discountPercentage.toString());
+    } else if (p.oldPrice && p.oldPrice > p.price) {
       const d = Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100);
       setDiscountPercent(d.toString());
     } else {
@@ -114,7 +118,10 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
     
     if (field === 'discount') {
         setDiscountPercent(value);
-        if (value === '' || isNaN(valNum)) return;
+        if (value === '' || isNaN(valNum)) {
+            setFormData(prev => ({ ...prev, discountPercentage: 0 }));
+            return;
+        }
         
         let basePrice = formData.oldPrice || 0;
         
@@ -127,7 +134,9 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
 
         if (basePrice > 0) {
             const newPrice = Math.round(basePrice * (1 - valNum / 100));
-            setFormData(prev => ({ ...prev, price: newPrice, oldPrice: basePrice }));
+            setFormData(prev => ({ ...prev, price: newPrice, oldPrice: basePrice, discountPercentage: valNum }));
+        } else {
+            setFormData(prev => ({ ...prev, discountPercentage: valNum }));
         }
     } else if (field === 'oldPrice') {
         const newMrp = isNaN(valNum) ? 0 : valNum;
@@ -141,19 +150,20 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
             newPrice = newMrp;
         }
         
-        setFormData(prev => ({ ...prev, oldPrice: newMrp, price: newPrice }));
+        setFormData(prev => ({ ...prev, oldPrice: newMrp, price: newPrice, discountPercentage: isNaN(disc) ? 0 : disc }));
     } else if (field === 'price') {
         const newPrice = isNaN(valNum) ? 0 : valNum;
-        setFormData(prev => ({ ...prev, price: newPrice }));
         
         // Reverse calc discount % if MRP exists
         const mrp = formData.oldPrice || 0;
+        let newDisc = 0;
         if (mrp > newPrice && newPrice > 0) {
-            const d = Math.round(((mrp - newPrice) / mrp) * 100);
-            setDiscountPercent(d.toString());
+            newDisc = Math.round(((mrp - newPrice) / mrp) * 100);
+            setDiscountPercent(newDisc.toString());
         } else {
             setDiscountPercent('');
         }
+        setFormData(prev => ({ ...prev, price: newPrice, discountPercentage: newDisc }));
     }
   };
 
