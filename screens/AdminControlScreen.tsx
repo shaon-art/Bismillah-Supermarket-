@@ -1,6 +1,8 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { SystemSettings, Screen, Product, Order } from '../types';
-import { storage } from '../utils/storage';
+import { storage as localStore } from '../utils/storage';
+import { uploadToFirebase } from '../utils/firebaseStorage';
+import { uploadToImgBB } from '../utils/imgbb';
 
 interface AdminControlScreenProps {
   settings: SystemSettings;
@@ -46,12 +48,13 @@ const AdminControlScreen: React.FC<AdminControlScreenProps> = ({
 
   // Storage Stats State
   const [storageInfo, setStorageInfo] = useState<{usage: number, quota: number, persisted: boolean} | null>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
   useEffect(() => {
     // 1. Storage Check
     const checkStorage = async () => {
-        const persisted = await storage.init();
-        const estimate = await storage.getEstimate();
+        const persisted = await localStore.init();
+        const estimate = await localStore.getEstimate();
         if (estimate) {
             setStorageInfo({
                 usage: estimate.usage || 0,
@@ -193,7 +196,7 @@ const AdminControlScreen: React.FC<AdminControlScreenProps> = ({
   };
 
   const handleBackup = () => {
-    storage.createBackup();
+    localStore.createBackup();
     alert(lang === 'bn' ? 'ডাটাবেস ব্যাকআপ মোবাইল স্টোরেজে সেভ করা হয়েছে।' : 'Database backup saved to mobile storage.');
   };
 
@@ -202,12 +205,12 @@ const AdminControlScreen: React.FC<AdminControlScreenProps> = ({
     if (file) {
       if (confirm(lang === 'bn' ? 'আপনি কি নিশ্চিত? বর্তমান সব ডাটা মুছে ব্যাকআপ ফাইল থেকে রিস্টোর করা হবে।' : 'Are you sure? This will overwrite current data with the backup.')) {
         setIsRestoring(true);
-        storage.restoreBackup(file)
+        localStore.restoreBackup(file)
           .then(() => {
             alert(lang === 'bn' ? 'সফলভাবে রিস্টোর হয়েছে! অ্যাপ রিলোড হচ্ছে...' : 'Restore successful! Reloading...');
             window.location.reload();
           })
-          .catch(err => {
+          .catch((err: any) => {
             alert('Failed to restore: ' + err);
             setIsRestoring(false);
           });
@@ -215,7 +218,7 @@ const AdminControlScreen: React.FC<AdminControlScreenProps> = ({
     }
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
@@ -223,43 +226,21 @@ const AdminControlScreen: React.FC<AdminControlScreenProps> = ({
         return;
       }
 
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          const MAX_SIZE = 256;
-
-          if (width > height) {
-            if (width > MAX_SIZE) {
-              height *= MAX_SIZE / width;
-              width = MAX_SIZE;
-            }
-          } else {
-            if (height > MAX_SIZE) {
-              width *= MAX_SIZE / height;
-              height = MAX_SIZE;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0, width, height);
-            const dataUrl = canvas.toDataURL('image/png');
-            handleValueChange('storeLogo', dataUrl);
-          }
-        };
-        
-        if (event.target?.result) {
-            img.src = event.target.result as string;
+      setIsUploadingLogo(true);
+      try {
+        let imageUrl = '';
+        if (settings.preferredStorage === 'FIREBASE') {
+          imageUrl = await uploadToFirebase(file, `branding/logo_${Date.now()}`);
+        } else {
+          imageUrl = await uploadToImgBB(file);
         }
-      };
-      reader.readAsDataURL(file);
+        handleValueChange('storeLogo', imageUrl);
+      } catch (err: any) {
+        console.error("Logo upload failed:", err);
+        alert(lang === 'bn' ? 'লোগো আপলোড ব্যর্থ হয়েছে' : 'Logo upload failed');
+      } finally {
+        setIsUploadingLogo(false);
+      }
     }
   };
 
@@ -285,23 +266,47 @@ const AdminControlScreen: React.FC<AdminControlScreenProps> = ({
           </div>
           
           <div 
-            onClick={() => fileInputRef.current?.click()}
-            className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 p-2 overflow-hidden shadow-inner cursor-pointer hover:bg-white/10 transition-colors relative group"
+            onClick={() => !isUploadingLogo && fileInputRef.current?.click()}
+            className={`w-12 h-12 rounded-2xl bg-white/5 border border-white/10 p-2 overflow-hidden shadow-inner cursor-pointer hover:bg-white/10 transition-colors relative group ${isUploadingLogo ? 'opacity-50' : ''}`}
             title={lang === 'bn' ? 'লোগো পরিবর্তন করুন' : 'Change Logo'}
           >
-             <img 
-              src={settings.storeLogo} 
-              alt="Logo" 
-              className="w-full h-full object-contain"
-              onError={(e) => {
-                (e.target as any).src = "https://cdn-icons-png.flaticon.com/512/3724/3724720.png";
-              }}
-             />
-             <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-               <span className="text-[8px] font-bold text-white">EDIT</span>
-             </div>
+             {isUploadingLogo ? (
+               <div className="w-full h-full flex items-center justify-center">
+                 <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+               </div>
+             ) : (
+               <>
+                 <img 
+                  src={settings.storeLogo} 
+                  alt="Logo" 
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    (e.target as any).src = "https://cdn-icons-png.flaticon.com/512/3724/3724720.png";
+                  }}
+                 />
+                 <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                   <span className="text-[8px] font-bold text-white">EDIT</span>
+                 </div>
+               </>
+             )}
           </div>
-          <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleLogoUpload} />
+          <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleLogoUpload} disabled={isUploadingLogo} />
+        </div>
+
+        {/* Storage Selection */}
+        <div className="relative z-10 mb-6 flex gap-2 p-1 bg-white/5 rounded-2xl border border-white/10">
+          <button 
+            onClick={() => handleValueChange('preferredStorage', 'FIREBASE')}
+            className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${settings.preferredStorage === 'FIREBASE' ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-400'}`}
+          >
+            Firebase Storage
+          </button>
+          <button 
+            onClick={() => handleValueChange('preferredStorage', 'IMGBB')}
+            className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${settings.preferredStorage === 'IMGBB' ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-400'}`}
+          >
+            ImgBB
+          </button>
         </div>
 
         {/* Daily Business Monitor (Editable) */}

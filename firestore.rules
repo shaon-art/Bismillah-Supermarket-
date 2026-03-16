@@ -32,8 +32,10 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() && 
-        request.auth.token.email == "tamimshaon@gmail.com" && 
-        request.auth.token.email_verified == true;
+        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true) ||
+         (request.auth.token.email == "tamimshaon@gmail.com" && request.auth.token.email_verified == true) ||
+         (request.auth.token.email == "admin@bismillah.com"));
     }
 
     function isOwner(userId) {
@@ -52,8 +54,8 @@ service cloud.firestore {
     match /users/{userId} {
       // PII Protection: Only the owner or an admin can read user data
       allow read: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) && hasOnlyAllowedFields(['id', 'name', 'phone', 'address', 'avatar', 'isAdmin']);
-      allow update: if (isOwner(userId) || isAdmin()) && hasOnlyAllowedFields(['id', 'name', 'phone', 'address', 'avatar', 'isAdmin']);
+      allow create: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin());
     }
 
     // Products collection
@@ -70,7 +72,8 @@ service cloud.firestore {
 
     // Orders collection
     match /orders/{orderId} {
-      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      // Allow read (get/list) if admin, or if the document belongs to the user
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       allow update: if isAdmin();
     }

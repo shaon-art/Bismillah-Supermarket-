@@ -2,10 +2,12 @@ import React, { useState, useRef } from 'react';
 import { TRANSLATIONS } from '../constants';
 import { Screen, User, Order, SystemSettings } from '../types';
 import { uploadToImgBB } from '../utils/imgbb';
+import { uploadToFirebase } from '../utils/firebaseStorage';
 
 interface ProfileScreenProps {
   currentUser: User;
   isAdmin: boolean;
+  settings: SystemSettings;
   onLogout: () => void;
   onUpdateUser: (user: User) => void;
   onNavigate: (screen: Screen) => void;
@@ -16,6 +18,7 @@ interface ProfileScreenProps {
 const ProfileScreen: React.FC<ProfileScreenProps> = ({ 
   currentUser,
   isAdmin, 
+  settings,
   onLogout, 
   onUpdateUser,
   onNavigate, 
@@ -49,7 +52,12 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
       setIsUploading(true);
       setError('');
       try {
-        const imageUrl = await uploadToImgBB(file);
+        let imageUrl = '';
+        if (settings.preferredStorage === 'FIREBASE') {
+          imageUrl = await uploadToFirebase(file, `avatars/${currentUser.id}_${Date.now()}`);
+        } else {
+          imageUrl = await uploadToImgBB(file);
+        }
         setEditUserData(prev => ({ ...prev, avatar: imageUrl }));
       } catch (err) {
         console.error("Avatar upload failed:", err);

@@ -1,11 +1,13 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { Product, Category, Screen } from '../types';
+import { Product, Category, Screen, SystemSettings } from '../types';
 import { TRANSLATIONS } from '../constants';
 import { uploadToImgBB } from '../utils/imgbb';
+import { uploadToFirebase } from '../utils/firebaseStorage';
 
 interface ProductManagementScreenProps {
   products: Product[];
   categories: Category[];
+  settings: SystemSettings;
   onBack: () => void;
   onAddProduct: (p: Product) => void;
   onUpdateProduct: (p: Product) => void;
@@ -17,6 +19,7 @@ interface ProductManagementScreenProps {
 const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({ 
   products, 
   categories, 
+  settings,
   onBack, 
   onAddProduct,
   onUpdateProduct, 
@@ -188,7 +191,13 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
       setIsUploading(true);
       setError('');
       try {
-        const imageUrl = await uploadToImgBB(file);
+        let imageUrl = '';
+        if (settings.preferredStorage === 'FIREBASE') {
+          const path = `products/${Date.now()}_${file.name}`;
+          imageUrl = await uploadToFirebase(file, path);
+        } else {
+          imageUrl = await uploadToImgBB(file);
+        }
         setFormData(prev => ({ ...prev, image: imageUrl }));
       } catch (err) {
         console.error("Image upload failed:", err);

@@ -41,6 +41,7 @@ export interface SystemSettings {
   // Sync Fields
   autoSyncEnabled: boolean;
   lastSyncTimestamp: string;
+  preferredStorage: 'FIREBASE' | 'IMGBB';
 }
 
 export interface Review {

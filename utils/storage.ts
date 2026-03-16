@@ -40,7 +40,8 @@ const DEFAULTS = {
     globalDiscountEnabled: false,
     globalDiscountPercentage: 10,
     autoSyncEnabled: true,
-    lastSyncTimestamp: new Date().toISOString()
+    lastSyncTimestamp: new Date().toISOString(),
+    preferredStorage: 'FIREBASE'
   }
 };
 

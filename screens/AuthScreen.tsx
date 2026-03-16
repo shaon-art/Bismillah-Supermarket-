@@ -43,24 +43,38 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
     setIsLoading(true);
 
     // Admin login logic
-    if (mode === 'LOGIN' && trimmedPhone === 'admin' && trimmedPassword === '22428') {
+    if (mode === 'LOGIN' && trimmedPhone === 'admin' && trimmedPassword === '224280') {
       try {
         const adminEmail = 'admin@bismillah.com';
-        const internalPassword = 'bismillah22428';
+        const internalPassword = 'bismillah224280';
         let userCredential;
         
         try {
           userCredential = await signInWithEmailAndPassword(auth, adminEmail, internalPassword);
         } catch (signInErr: any) {
           if (signInErr.code === 'auth/user-not-found' || signInErr.code === 'auth/invalid-credential') {
-            userCredential = await createUserWithEmailAndPassword(auth, adminEmail, internalPassword);
-            const adminUser: User = {
-              id: userCredential.user.uid,
-              name: 'Admin User',
-              phone: 'admin',
-              isAdmin: true,
-            };
-            await setDoc(doc(db, 'users', adminUser.id), adminUser);
+            // If sign in fails due to invalid credentials (password change), 
+            // we try to create or we might need to handle password update.
+            // For this applet, we'll try to create, and if it exists, we'll just report error
+            // unless we want to be more sophisticated.
+            try {
+              userCredential = await createUserWithEmailAndPassword(auth, adminEmail, internalPassword);
+              const adminUser: User = {
+                id: userCredential.user.uid,
+                name: 'Admin User',
+                phone: 'admin',
+                isAdmin: true,
+              };
+              await setDoc(doc(db, 'users', adminUser.id), adminUser);
+            } catch (createErr: any) {
+              if (createErr.code === 'auth/email-already-in-use') {
+                // This happens if the password was changed in code but not in Firebase
+                setError('এডমিন পাসওয়ার্ড আপডেট প্রয়োজন। দয়া করে ডেভেলপারকে জানান।');
+                setIsLoading(false);
+                return;
+              }
+              throw createErr;
+            }
           } else {
             throw signInErr;
           }
