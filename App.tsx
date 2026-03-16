@@ -163,13 +163,9 @@ const App: React.FC = () => {
           console.error("Error fetching user data:", err);
         }
       } else {
-        // Only clear if it's not the simple admin
-        const current = storage.load<User | null>('currentUser', null);
-        if (!current || current.id !== 'admin-id') {
-          setCurrentUser(null);
-          storage.save('currentUser', null);
-          setCurrentScreen('AUTH');
-        }
+        setCurrentUser(null);
+        storage.save('currentUser', null);
+        setCurrentScreen('AUTH');
       }
     });
 

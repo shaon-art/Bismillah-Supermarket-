@@ -28,29 +28,102 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
     
     const trimmedPhone = phone.trim();
     const trimmedPassword = password.trim();
+    const trimmedName = name.trim();
 
-    if (!trimmedPhone || !trimmedPassword) {
+    if (!trimmedPhone || !trimmedPassword || (mode === 'REGISTER' && !trimmedName)) {
       setError('দয়া করে সব ঘর পূরণ করুন');
+      return;
+    }
+
+    if (trimmedPassword.length < 6) {
+      setError('পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে');
       return;
     }
 
     setIsLoading(true);
 
-    // Simple hardcoded login as requested
-    if (trimmedPhone === 'admin' && trimmedPassword === '22428') {
-      const adminUser: User = {
-        id: 'admin-id',
-        name: 'Admin User',
-        phone: 'admin',
-        isAdmin: true,
-      };
-      onLogin(adminUser);
-      setIsLoading(false);
-    } else {
-      setTimeout(() => {
-        setError('ইউজারনেম বা পাসওয়ার্ড সঠিক নয়');
+    // Admin login logic
+    if (mode === 'LOGIN' && trimmedPhone === 'admin' && trimmedPassword === '22428') {
+      try {
+        const adminEmail = 'admin@bismillah.com';
+        const internalPassword = 'bismillah22428';
+        let userCredential;
+        
+        try {
+          userCredential = await signInWithEmailAndPassword(auth, adminEmail, internalPassword);
+        } catch (signInErr: any) {
+          if (signInErr.code === 'auth/user-not-found' || signInErr.code === 'auth/invalid-credential') {
+            userCredential = await createUserWithEmailAndPassword(auth, adminEmail, internalPassword);
+            const adminUser: User = {
+              id: userCredential.user.uid,
+              name: 'Admin User',
+              phone: 'admin',
+              isAdmin: true,
+            };
+            await setDoc(doc(db, 'users', adminUser.id), adminUser);
+          } else {
+            throw signInErr;
+          }
+        }
+
+        const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+        if (userDoc.exists()) {
+          onLogin(userDoc.data() as User);
+        } else {
+          const adminUser: User = {
+            id: userCredential.user.uid,
+            name: 'Admin User',
+            phone: 'admin',
+            isAdmin: true,
+          };
+          await setDoc(doc(db, 'users', adminUser.id), adminUser);
+          onLogin(adminUser);
+        }
+      } catch (err: any) {
+        console.error("Admin auth error:", err);
+        setError('লগইন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।');
+      } finally {
         setIsLoading(false);
-      }, 500);
+      }
+      return;
+    }
+
+    // Regular user login/register logic
+    try {
+      const userEmail = `${trimmedPhone}@bismillah.com`;
+      let userCredential;
+
+      if (mode === 'LOGIN') {
+        userCredential = await signInWithEmailAndPassword(auth, userEmail, trimmedPassword);
+        const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+        if (userDoc.exists()) {
+          onLogin(userDoc.data() as User);
+        } else {
+          setError('ইউজার ডাটা পাওয়া যায়নি');
+        }
+      } else {
+        // REGISTER
+        userCredential = await createUserWithEmailAndPassword(auth, userEmail, trimmedPassword);
+        const newUser: User = {
+          id: userCredential.user.uid,
+          name: trimmedName,
+          phone: trimmedPhone,
+          isAdmin: false,
+        };
+        await setDoc(doc(db, 'users', newUser.id), newUser);
+        onLogin(newUser);
+      }
+    } catch (err: any) {
+      console.error("Auth error:", err);
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setError('ফোন নাম্বার বা পাসওয়ার্ড সঠিক নয়');
+      } else if (err.code === 'auth/email-already-in-use') {
+        setError('এই ফোন নাম্বারটি ইতিমধ্যে ব্যবহার করা হয়েছে');
+      } else {
+        setError('অথেনটিকেশন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -106,22 +179,35 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
           <div className="flex items-center justify-center gap-2 mt-2">
             <span className="w-2 h-0.5 bg-green-500 rounded-full"></span>
             <p className="text-gray-400 dark:text-gray-500 text-[10px] font-black uppercase tracking-[0.2em]">
-              Admin Login Only
+              {mode === 'LOGIN' ? 'Welcome Back' : 'Create Account'}
             </p>
             <span className="w-2 h-0.5 bg-green-500 rounded-full"></span>
           </div>
         </div>
 
         <form onSubmit={handleAuth} className="space-y-4">
+            {mode === 'REGISTER' && (
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">আপনার নাম</label>
+                <input 
+                  type="text" 
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-600 transition-all font-bold text-sm dark:text-white" 
+                  placeholder="আপনার নাম লিখুন"
+                />
+              </div>
+            )}
+
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">ইউজারনেম</label>
+              <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">ফোন নাম্বার</label>
               <input 
                 type="text" 
                 autoComplete="username"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-600 transition-all font-bold text-sm dark:text-white" 
-                placeholder="admin"
+                placeholder="017XXXXXXXX"
               />
             </div>
 
@@ -153,9 +239,22 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               ) : (
-                'লগইন করুন'
+                mode === 'LOGIN' ? 'লগইন করুন' : 'রেজিস্ট্রেশন করুন'
               )}
             </button>
+
+            <div className="text-center pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode(mode === 'LOGIN' ? 'REGISTER' : 'LOGIN');
+                  setError('');
+                }}
+                className="text-[11px] font-black text-green-600 uppercase tracking-widest hover:underline"
+              >
+                {mode === 'LOGIN' ? 'নতুন একাউন্ট খুলুন' : 'ইতিমধ্যে একাউন্ট আছে? লগইন করুন'}
+              </button>
+            </div>
         </form>
 
         <div className="relative py-4">
