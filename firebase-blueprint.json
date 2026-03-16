@@ -1,0 +1,105 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "A product available in the store",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "oldPrice": { "type": "number" },
+        "discountPercentage": { "type": "number" },
+        "category": { "type": "string" },
+        "image": { "type": "string" },
+        "unit": { "type": "string" },
+        "stock": { "type": "number" },
+        "description": { "type": "string" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["id", "name", "price", "category", "image", "unit", "stock", "isActive"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "A product category",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "icon": { "type": "string" },
+        "color": { "type": "string" }
+      },
+      "required": ["id", "name", "icon", "color"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "A customer order",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string" },
+        "total": { "type": "number" },
+        "status": { "type": "string" },
+        "itemsCount": { "type": "number" },
+        "paymentMethod": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["id", "date", "total", "status", "userId"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A user profile",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "avatar": { "type": "string" },
+        "isAdmin": { "type": "boolean" }
+      },
+      "required": ["id", "name", "phone", "isAdmin"]
+    },
+    "SystemSettings": {
+      "title": "SystemSettings",
+      "description": "Global application settings",
+      "type": "object",
+      "properties": {
+        "isStoreOpen": { "type": "boolean" },
+        "maintenanceMode": { "type": "boolean" },
+        "deliveryCharge": { "type": "number" },
+        "minOrderAmount": { "type": "number" },
+        "aiAssistantEnabled": { "type": "boolean" },
+        "broadcastMessage": { "type": "string" },
+        "storeName": { "type": "string" },
+        "storeSlogan": { "type": "string" },
+        "storeLogo": { "type": "string" },
+        "supportPhone": { "type": "string" },
+        "globalDiscountEnabled": { "type": "boolean" },
+        "globalDiscountPercentage": { "type": "number" }
+      }
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of products"
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Collection of categories"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Collection of orders"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Collection of users"
+    },
+    "/settings/global": {
+      "schema": "SystemSettings",
+      "description": "Global settings document"
+    }
+  }
+}

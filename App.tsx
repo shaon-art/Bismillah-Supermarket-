@@ -20,8 +20,12 @@ import AdminControlScreen from './screens/AdminControlScreen';
 import CategoryManagementScreen from './screens/CategoryManagementScreen';
 import MessagingScreen from './screens/MessagingScreen';
 import BazarCalculatorScreen from './screens/BazarCalculatorScreen';
+import LegalScreen from './screens/LegalScreen';
 import { GoogleGenAI } from "@google/genai";
 import { storage } from './utils/storage';
+import { db, auth, handleFirestoreError, OperationType } from './firebase';
+import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, query, orderBy, where, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 const Logo: React.FC<{ settings: SystemSettings, onClick: () => void }> = ({ settings, onClick }) => {
   const parts = settings.storeName.split(' ');
@@ -115,6 +119,7 @@ const App: React.FC = () => {
   
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(() => storage.load('selectedProduct', null));
   const [selectedOrderForTracking, setSelectedOrderForTracking] = useState<Order | null>(() => storage.load('selectedOrderForTracking', null));
+  const [legalType, setLegalType] = useState<'PRIVACY' | 'TERMS'>('PRIVACY');
   
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
   const [language, setLanguage] = useState<'bn' | 'en'>(() => (localStorage.getItem('lang') as any) || 'bn');
@@ -129,198 +134,188 @@ const App: React.FC = () => {
 
   const t = TRANSLATIONS[language];
 
-  // --- Real-time Sync Engine ---
+  // --- Firebase Sync Engine ---
   useEffect(() => {
-    // 1. Subscribe to storage events (Cross-tab & Same-tab)
-    const unsubscribe = storage.subscribe((key, newValue) => {
-      if (!newValue) return;
-      
-      console.log(`[Sync Engine] Update received for: ${key}`);
-      
-      // Flash sync indicator
-      setIsSyncing(true);
-      setTimeout(() => setIsSyncing(false), 800);
-      setLastServerUpdate(new Date());
-
-      // Update Local State based on key
-      switch (key) {
-        case 'products_v1': setProducts(newValue); break;
-        case 'categories_v1': setCategories(newValue); break;
-        case 'orders_v1': setOrders(newValue); break;
-        case 'systemSettings_v3': setSystemSettings(newValue); break;
-        case 'users':
-          // If current user is deleted from the global list, log them out
-          // Exclude hardcoded admin and guest accounts from this check
-          if (currentUser && 
-              currentUser.id !== 'admin-001' && 
-              currentUser.id !== 'u-guest-001' && 
-              !newValue.find((u: User) => u.id === currentUser.id)) {
-             handleLogout();
+    // 1. Listen for Auth Changes
+    const unsubAuth = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Fetch user data from Firestore
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data() as User;
+            setCurrentUser(userData);
+            storage.save('currentUser', userData);
+          } else {
+            // Fallback if doc doesn't exist yet
+            const userData: User = {
+              id: user.uid,
+              name: user.displayName || 'User',
+              phone: user.phoneNumber || '',
+              avatar: user.photoURL || undefined,
+              isAdmin: false,
+            };
+            setCurrentUser(userData);
+            storage.save('currentUser', userData);
           }
-          break;
-        // Add other keys if needed to be synced across users immediately (e.g. maintenance mode)
-      }
-    });
-
-    // 2. Polling for "Server" updates (Simulates fetching from backend)
-    const intervalId = setInterval(() => {
-      // In a real app, this would fetch('/api/settings')
-      // Here we re-read storage to ensure we catch any updates we might have missed
-      const latestSettings = storage.getSettings();
-      if (JSON.stringify(latestSettings) !== JSON.stringify(systemSettings)) {
-        setSystemSettings(latestSettings);
-        setIsSyncing(true);
-        setTimeout(() => setIsSyncing(false), 500);
-      }
-      
-      const latestProducts = storage.getProducts();
-      if (JSON.stringify(latestProducts) !== JSON.stringify(products)) {
-         setProducts(latestProducts);
-      }
-
-      // Check if user still exists in global list
-      // Exclude hardcoded admin and guest accounts from this check
-      if (currentUser && currentUser.id !== 'admin-001' && currentUser.id !== 'u-guest-001') {
-        const latestUsers = storage.getUsers();
-        if (!latestUsers.find(u => u.id === currentUser.id)) {
-          handleLogout();
+          if (currentScreen === 'AUTH') setCurrentScreen('HOME');
+        } catch (err) {
+          console.error("Error fetching user data:", err);
         }
+      } else {
+        setCurrentUser(null);
+        storage.save('currentUser', null);
+        setCurrentScreen('AUTH');
       }
-    }, 2000); // Check every 2 seconds
-
-    return () => {
-      unsubscribe();
-      clearInterval(intervalId);
-    };
-  }, [systemSettings, products, currentUser]); // Deps indicate what we are comparing against
-
-  // --- Initial Setup ---
-  useEffect(() => {
-    storage.init().then(persisted => {
-      if (persisted) console.log("Device storage persistence active");
     });
 
-    if (!currentUser && currentScreen !== 'AUTH') {
-      setCurrentScreen('AUTH');
-    } else if (currentUser && currentScreen === 'AUTH') {
-      setCurrentScreen('HOME');
-    }
-  }, [currentUser, currentScreen]);
-
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  // --- User Action Persisters ---
-  // Note: We only save user-specific data here. Admin data is saved via explicit handlers.
-  useEffect(() => {
-    if (currentUser) {
-      const userAddressesKey = `addresses_${currentUser.id}`;
-      const savedAddresses = storage.load<Address[]>(userAddressesKey, []);
-      
-      if (savedAddresses.length > 0) {
-        setAddresses(savedAddresses);
-      } else {
-        // Default address for new user
-        setAddresses([
-          {
-            id: 'a1',
-            label: 'Home',
-            receiverName: currentUser.name,
-            phone: currentUser.phone,
-            details: '',
-            isDefault: true
-          }
-        ]);
+    // 2. Listen for Products
+    const unsubProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
+      const list = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Product));
+      if (list.length > 0) {
+        setProducts(list);
+        storage.save('products_v1', list);
       }
-    } else {
-      setAddresses([]);
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'products'));
+
+    // 3. Listen for Categories
+    const unsubCategories = onSnapshot(collection(db, 'categories'), (snapshot) => {
+      const list = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Category));
+      if (list.length > 0) {
+        setCategories(list);
+        storage.save('categories_v1', list);
+      }
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'categories'));
+
+    // 4. Listen for Settings
+    const unsubSettings = onSnapshot(doc(db, 'settings', 'global'), (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data() as SystemSettings;
+        setSystemSettings(data);
+        storage.save('systemSettings_v3', data);
+      }
+    }, (err) => handleFirestoreError(err, OperationType.GET, 'settings/global'));
+
+    // 5. Listen for Orders (if logged in)
+    let unsubOrders = () => {};
+    if (currentUser) {
+      const ordersQuery = currentUser.isAdmin 
+        ? query(collection(db, 'orders'), orderBy('date', 'desc'))
+        : query(collection(db, 'orders'), where('userId', '==', currentUser.id));
+        
+      unsubOrders = onSnapshot(ordersQuery, (snapshot) => {
+        const list = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Order));
+        setOrders(list);
+        storage.save('orders_v1', list);
+      }, (err) => handleFirestoreError(err, OperationType.LIST, 'orders'));
     }
+
+    return () => {
+      unsubAuth();
+      unsubProducts();
+      unsubCategories();
+      unsubSettings();
+      unsubOrders();
+    };
   }, [currentUser]);
 
-  useEffect(() => {
-    storage.save('cart', cart);
-    storage.save('favorites', favorites);
-    storage.save('recentlyViewedIds', recentlyViewedIds);
-    
-    if (currentUser && addresses.length > 0) {
-      storage.save(`addresses_${currentUser.id}`, addresses);
-    }
-    
-    // UI State
-    storage.save('currentScreen', currentScreen);
-    storage.save('selectedProduct', selectedProduct);
-    storage.save('selectedOrderForTracking', selectedOrderForTracking);
-    
-    storage.save('notificationsEnabled', notificationsEnabled);
-    storage.save('soundsEnabled', soundsEnabled);
-  }, [cart, favorites, recentlyViewedIds, addresses, currentScreen, selectedProduct, selectedOrderForTracking, notificationsEnabled, soundsEnabled, currentUser]);
-
-  useEffect(() => {
-    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-    localStorage.setItem('lang', language);
-    if (isDarkMode) document.documentElement.classList.add('dark');
-    else document.documentElement.classList.remove('dark');
-  }, [isDarkMode, language]);
-
-  // --- Handlers (Modified to use storage.save which triggers sync) ---
+  // --- Handlers (Updated for Firebase) ---
   
-  const handleUpdateSettings = (newSettings: SystemSettings) => {
-    // Optimistic update
+  const handleUpdateSettings = async (newSettings: SystemSettings) => {
     setSystemSettings(newSettings);
-    // Persist & Broadcast
-    storage.save('systemSettings_v3', newSettings);
+    try {
+      await setDoc(doc(db, 'settings', 'global'), newSettings);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, 'settings/global');
+    }
   };
 
-  const handleUpdateProduct = (updatedProduct: Product) => {
-    setProducts(prev => {
-      const newList = prev.map(p => p.id === updatedProduct.id ? updatedProduct : p);
-      storage.save('products_v1', newList);
-      return newList;
-    });
+  const handleUpdateProduct = async (updatedProduct: Product) => {
+    try {
+      await updateDoc(doc(db, 'products', updatedProduct.id), { ...updatedProduct });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `products/${updatedProduct.id}`);
+    }
   };
 
-  const handleAddProduct = (newProduct: Product) => {
-    const newProducts = [...products, newProduct];
-    setProducts(newProducts);
-    storage.save('products_v1', newProducts);
+  const handleAddProduct = async (newProduct: Product) => {
+    try {
+      await setDoc(doc(db, 'products', newProduct.id), newProduct);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, `products/${newProduct.id}`);
+    }
   };
 
-  const handleDeleteProduct = (id: string) => {
-    const newProducts = products.filter(p => p.id !== id);
-    setProducts(newProducts);
-    storage.save('products_v1', newProducts);
-    if (currentScreen === 'PRODUCT_DETAIL') setCurrentScreen('HOME');
+  const handleDeleteProduct = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'products', id));
+      if (currentScreen === 'PRODUCT_DETAIL') setCurrentScreen('HOME');
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `products/${id}`);
+    }
   };
   
-  const handleAddCategory = (newCat: Category) => {
-      const newCats = [...categories, newCat];
-      setCategories(newCats);
-      storage.save('categories_v1', newCats);
+  const handleAddCategory = async (newCat: Category) => {
+    try {
+      await setDoc(doc(db, 'categories', newCat.id), newCat);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, `categories/${newCat.id}`);
+    }
   };
   
-  const handleUpdateCategory = (updatedCat: Category) => {
-      const newCats = categories.map(c => c.id === updatedCat.id ? updatedCat : c);
-      setCategories(newCats);
-      storage.save('categories_v1', newCats);
+  const handleUpdateCategory = async (updatedCat: Category) => {
+    try {
+      await updateDoc(doc(db, 'categories', updatedCat.id), { ...updatedCat });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `categories/${updatedCat.id}`);
+    }
   };
   
-  const handleDeleteCategory = (id: string) => {
-      const newCats = categories.filter(c => c.id !== id);
-      setCategories(newCats);
-      storage.save('categories_v1', newCats);
+  const handleDeleteCategory = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'categories', id));
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `categories/${id}`);
+    }
   };
   
-  const handleUpdateOrders = (newOrders: Order[]) => {
-      setOrders(newOrders);
-      storage.save('orders_v1', newOrders);
+  const handleUpdateOrders = async (newOrders: Order[]) => {
+    // This is a bit tricky since it's a list update in local state
+    // In Firebase, we usually update individual orders
+    setOrders(newOrders);
+  };
+
+  const handlePlaceOrder = async (method: PaymentMethod, details?: { phone?: string, trxId?: string }, address?: Address) => {
+    if (!address) return;
+    
+    const newOrder: Order = { 
+      id: `ORD-${Date.now()}`, 
+      date: new Date().toISOString(), 
+      total: cart.reduce((a,c)=>a+(c.price*c.quantity),0)+systemSettings.deliveryCharge, 
+      status: 'PENDING' as OrderStatus, 
+      itemsCount: cart.length, 
+      items: cart.map(i=>({name:i.name, quantity:i.quantity, price:i.price})), 
+      paymentMethod: method, 
+      paymentDetails: details,
+      deliveryAddress: address,
+      userId: currentUser?.id || 'guest'
+    };
+
+    try {
+      await setDoc(doc(db, 'orders', newOrder.id), newOrder);
+      setCart([]);
+      setCurrentScreen('ORDERS');
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, `orders/${newOrder.id}`);
+    }
+  };
+
+  const handleUpdateOrderStatus = async (orderId: string, status: OrderStatus) => {
+    try {
+      await updateDoc(doc(db, 'orders', orderId), { status });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `orders/${orderId}`);
+    }
   };
 
   const handleUpdateUser = (updatedUser: User) => {
@@ -343,18 +338,25 @@ const App: React.FC = () => {
   };
 
   const handleLogin = (user: User) => {
+    // AuthScreen handles the actual Firebase login
+    // This is just to update local state immediately if needed
     setCurrentUser(user);
     storage.save('currentUser', user);
     setCurrentScreen('HOME');
   };
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('currentScreen');
-    localStorage.removeItem('selectedProduct');
-    localStorage.removeItem('selectedOrderForTracking');
-    setCurrentScreen('AUTH');
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setCurrentUser(null);
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('currentScreen');
+      localStorage.removeItem('selectedProduct');
+      localStorage.removeItem('selectedOrderForTracking');
+      setCurrentScreen('AUTH');
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
   };
 
   const handleSendMessage = async (text: string) => {
@@ -429,11 +431,11 @@ const App: React.FC = () => {
       case 'AUTH': return <AuthScreen onLogin={handleLogin} settings={systemSettings} />;
       case 'HOME': return <HomeScreen products={products} categories={categories} recentlyViewed={products.filter(p => recentlyViewedIds.includes(p.id))} onProductClick={handleProductClick} onAddToCart={addToCart} onNavigate={setCurrentScreen} onCategoryClick={handleCategoryClick} lang={language} settings={systemSettings} />;
       case 'CATEGORIES': return <CategoryScreen products={products} categories={categories} onProductClick={handleProductClick} onAddToCart={addToCart} settings={systemSettings} initialCategoryId={targetCategory || undefined} />;
-      case 'CART': return <CartScreen cart={cart} addresses={addresses} onUpdateQty={(id, d) => setCart(p => p.map(i => i.id === id ? {...i, quantity: Math.max(1, i.quantity+d)} : i))} onRemove={id => setCart(p => p.filter(i => i.id !== id))} onClearCart={() => setCart([])} onPlaceOrder={(m, d, a) => { const newOrders = [{ id: `ORD-${Date.now()}`, date: 'Just now', total: cart.reduce((a,c)=>a+(c.price*c.quantity),0)+systemSettings.deliveryCharge, status: 'PENDING' as OrderStatus, itemsCount: cart.length, items: cart.map(i=>({name:i.name, quantity:i.quantity, price:i.price})), paymentMethod: m, deliveryAddress: a }, ...orders]; handleUpdateOrders(newOrders); setCart([]); setCurrentScreen('ORDERS'); }} onManageAddresses={() => setCurrentScreen('ADDRESS_LIST')} lang={language} isStoreOpen={systemSettings.isStoreOpen} deliveryCharge={systemSettings.deliveryCharge} supportPhone={systemSettings.supportPhone} />;
-      case 'PROFILE': return <ProfileScreen currentUser={currentUser!} isAdmin={currentUser!.isAdmin} onLogout={handleLogout} onUpdateUser={handleUpdateUser} onNavigate={setCurrentScreen} lang={language} />;
+      case 'CART': return <CartScreen cart={cart} addresses={addresses} onUpdateQty={(id, d) => setCart(p => p.map(i => i.id === id ? {...i, quantity: Math.max(1, i.quantity+d)} : i))} onRemove={id => setCart(p => p.filter(i => i.id !== id))} onClearCart={() => setCart([])} onPlaceOrder={handlePlaceOrder} onManageAddresses={() => setCurrentScreen('ADDRESS_LIST')} lang={language} isStoreOpen={systemSettings.isStoreOpen} deliveryCharge={systemSettings.deliveryCharge} supportPhone={systemSettings.supportPhone} />;
+      case 'PROFILE': return <ProfileScreen currentUser={currentUser!} isAdmin={currentUser!.isAdmin} onLogout={handleLogout} onUpdateUser={handleUpdateUser} onNavigate={setCurrentScreen} onShowLegal={(type) => { setLegalType(type); setCurrentScreen('LEGAL'); }} lang={language} />;
       case 'MESSAGES': return <MessagingScreen messages={messages} onSendMessage={handleSendMessage} isTyping={isTyping} onBack={() => setCurrentScreen('HOME')} lang={language} settings={systemSettings} />;
-      case 'ORDERS': return <OrderListScreen orders={orders} isAdmin={currentUser!.isAdmin} onBack={() => setCurrentScreen('PROFILE')} onCancelOrder={id => handleUpdateOrders(orders.map(o=>o.id===id?{...o,status:'CANCELED'}:o))} onAcceptOrder={id => handleUpdateOrders(orders.map(o=>o.id===id?{...o,status:'ACCEPTED'}:o))} onTrackOrder={o => {setSelectedOrderForTracking(o); setCurrentScreen('TRACKING');}} lang={language} deliveryCharge={systemSettings.deliveryCharge} />;
-      case 'TRACKING': return selectedOrderForTracking ? <TrackingScreen order={selectedOrderForTracking} isAdmin={currentUser!.isAdmin} onBack={() => setCurrentScreen('ORDERS')} onUpdateStatus={(id, s) => handleUpdateOrders(orders.map(o=>o.id===id?{...o,status:s}:o))} /> : null;
+      case 'ORDERS': return <OrderListScreen orders={orders} isAdmin={currentUser!.isAdmin} onBack={() => setCurrentScreen('PROFILE')} onCancelOrder={id => handleUpdateOrderStatus(id, 'CANCELED')} onAcceptOrder={id => handleUpdateOrderStatus(id, 'ACCEPTED')} onTrackOrder={o => {setSelectedOrderForTracking(o); setCurrentScreen('TRACKING');}} lang={language} deliveryCharge={systemSettings.deliveryCharge} />;
+      case 'TRACKING': return selectedOrderForTracking ? <TrackingScreen order={selectedOrderForTracking} isAdmin={currentUser!.isAdmin} onBack={() => setCurrentScreen('ORDERS')} onUpdateStatus={handleUpdateOrderStatus} /> : null;
       case 'SETTINGS': return <SettingsScreen isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} language={language} onSetLanguage={setLanguage} notifications={notificationsEnabled} onToggleNotifications={() => setNotificationsEnabled(!notificationsEnabled)} sounds={soundsEnabled} onToggleSounds={() => setSoundsEnabled(!soundsEnabled)} onBack={() => setCurrentScreen('PROFILE')} onLogout={handleLogout} isAdmin={currentUser?.isAdmin} onNavigate={setCurrentScreen} />;
       case 'PRODUCT_DETAIL': return selectedProduct ? <ProductDetailScreen product={selectedProduct} isAdmin={currentUser!.isAdmin} categories={categories} isFavorite={favorites.includes(selectedProduct.id)} onToggleFavorite={() => setFavorites(p=>p.includes(selectedProduct.id)?p.filter(i=>i!==selectedProduct.id):[...p,selectedProduct.id])} onAddToCart={addToCart} onBack={() => setCurrentScreen('HOME')} onUpdateProduct={handleUpdateProduct} onDeleteProduct={handleDeleteProduct} lang={language} settings={systemSettings} /> : null;
       case 'ADMIN_CONTROL': return <AdminControlScreen settings={systemSettings} products={products} orders={orders} onUpdateSettings={handleUpdateSettings} onBack={() => setCurrentScreen('PROFILE')} onNavigate={setCurrentScreen} lang={language} />;
@@ -443,6 +445,7 @@ const App: React.FC = () => {
       case 'ADDRESS_LIST': return <AddressListScreen addresses={addresses} onBack={() => setCurrentScreen('PROFILE')} onAddAddress={a=>setAddresses(p=>[...p,a])} onUpdateAddress={a=>setAddresses(p=>p.map(i=>i.id===a.id?a:i))} onDeleteAddress={id=>setAddresses(p=>p.filter(i=>i.id!==id))} onSetDefault={id=>setAddresses(p=>p.map(i=>({...i,isDefault:i.id===id})))} />;
       case 'BAZAR_CALCULATOR': return <BazarCalculatorScreen onBack={() => setCurrentScreen('PROFILE')} lang={language} />;
       case 'COUPONS': return <CouponScreen onBack={() => setCurrentScreen('HOME')} />;
+      case 'LEGAL': return <LegalScreen type={legalType} onBack={() => setCurrentScreen('PROFILE')} lang={language} />;
       default: return <HomeScreen products={products} categories={categories} recentlyViewed={[]} onProductClick={handleProductClick} onAddToCart={addToCart} onNavigate={setCurrentScreen} onCategoryClick={handleCategoryClick} lang={language} settings={systemSettings} />;
     }
   };
@@ -476,6 +479,16 @@ const App: React.FC = () => {
 
         <main className={`flex-1 ${isNoScrollScreen ? 'overflow-hidden' : 'overflow-y-auto'} scroll-smooth no-scrollbar relative overscroll-none`}>
           {renderScreen()}
+          {isTabScreen && !isNoScrollScreen && (
+            <div className="py-8 px-6 text-center opacity-40">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                © {new Date().getFullYear()} {systemSettings.storeName}
+              </p>
+              <p className="text-[8px] font-bold text-slate-500 mt-1">
+                All Rights Reserved. Developed by Ayat's Studio
+              </p>
+            </div>
+          )}
           {isTabScreen && !isNoScrollScreen && <div className="h-24" />}
         </main>
 

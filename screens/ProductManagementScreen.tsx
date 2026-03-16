@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { Product, Category, Screen } from '../types';
 import { TRANSLATIONS } from '../constants';
+import { uploadToImgBB } from '../utils/imgbb';
 
 interface ProductManagementScreenProps {
   products: Product[];
@@ -33,6 +34,7 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [error, setError] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
   
   // Discount State
   const [discountPercent, setDiscountPercent] = useState<string>('');
@@ -180,14 +182,20 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, image: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
+      setIsUploading(true);
+      setError('');
+      try {
+        const imageUrl = await uploadToImgBB(file);
+        setFormData(prev => ({ ...prev, image: imageUrl }));
+      } catch (err) {
+        console.error("Image upload failed:", err);
+        setError(lang === 'bn' ? 'ছবি আপলোড ব্যর্থ হয়েছে' : 'Image upload failed');
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -420,15 +428,24 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
             <div className="space-y-4 mb-6 max-h-[60vh] overflow-y-auto pr-2 no-scrollbar">
               {/* Image Preview & Upload */}
               <div className="flex flex-col items-center gap-3">
-                 <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                    <div className="w-28 h-28 rounded-3xl bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center">
-                      <img src={formData.image} alt="preview" className="w-full h-full object-cover" />
+                 <div className="relative group cursor-pointer" onClick={() => !isUploading && fileInputRef.current?.click()}>
+                    <div className={`w-28 h-28 rounded-3xl bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center ${isUploading ? 'opacity-50' : ''}`}>
+                      {isUploading ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+                          <span className="text-[8px] font-black uppercase text-slate-400">Uploading...</span>
+                        </div>
+                      ) : (
+                        <img src={formData.image} alt="preview" className="w-full h-full object-cover" />
+                      )}
                     </div>
-                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 rounded-3xl flex items-center justify-center transition-opacity">
-                      <span className="text-white text-[9px] font-black uppercase tracking-widest">{lang === 'bn' ? 'ছবি বদলান' : 'Change Image'}</span>
-                    </div>
+                    {!isUploading && (
+                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 rounded-3xl flex items-center justify-center transition-opacity">
+                        <span className="text-white text-[9px] font-black uppercase tracking-widest">{lang === 'bn' ? 'ছবি বদলান' : 'Change Image'}</span>
+                      </div>
+                    )}
                  </div>
-                 <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageChange} />
+                 <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageChange} disabled={isUploading} />
               </div>
 
               <div className="space-y-1">

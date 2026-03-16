@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { TRANSLATIONS } from '../constants';
 import { Screen, User, Order, SystemSettings } from '../types';
+import { uploadToImgBB } from '../utils/imgbb';
 
 interface ProfileScreenProps {
   currentUser: User;
@@ -8,6 +9,7 @@ interface ProfileScreenProps {
   onLogout: () => void;
   onUpdateUser: (user: User) => void;
   onNavigate: (screen: Screen) => void;
+  onShowLegal: (type: 'PRIVACY' | 'TERMS') => void;
   lang: 'bn' | 'en';
 }
 
@@ -17,6 +19,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
   onLogout, 
   onUpdateUser,
   onNavigate, 
+  onShowLegal,
   lang
 }) => {
   const profilePicInputRef = useRef<HTMLInputElement>(null);
@@ -24,6 +27,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState('');
   
   const [editUserData, setEditUserData] = useState<Partial<User>>({
     name: currentUser.name,
@@ -38,12 +43,20 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
     setShowEditProfileModal(false);
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setEditUserData(prev => ({ ...prev, avatar: reader.result as string }));
-      reader.readAsDataURL(file);
+      setIsUploading(true);
+      setError('');
+      try {
+        const imageUrl = await uploadToImgBB(file);
+        setEditUserData(prev => ({ ...prev, avatar: imageUrl }));
+      } catch (err) {
+        console.error("Avatar upload failed:", err);
+        setError(lang === 'bn' ? 'ছবি আপলোড ব্যর্থ হয়েছে' : 'Avatar upload failed');
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -116,15 +129,22 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
             <div className="space-y-6">
               <div className="flex flex-col items-center">
                 <div 
-                  onClick={() => profilePicInputRef.current?.click()}
-                  className="w-24 h-24 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-4xl border-2 border-dashed border-slate-300 dark:border-slate-700 overflow-hidden relative group cursor-pointer"
+                  onClick={() => !isUploading && profilePicInputRef.current?.click()}
+                  className={`w-24 h-24 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-4xl border-2 border-dashed border-slate-300 dark:border-slate-700 overflow-hidden relative group cursor-pointer ${isUploading ? 'opacity-50' : ''}`}
                 >
-                  {editUserData.avatar ? <img src={editUserData.avatar} className="w-full h-full object-cover" /> : '📸'}
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-[8px] text-white font-black uppercase">Change</span>
-                  </div>
+                  {isUploading ? (
+                    <div className="w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <>
+                      {editUserData.avatar ? <img src={editUserData.avatar} className="w-full h-full object-cover" /> : '📸'}
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="text-[8px] text-white font-black uppercase">Change</span>
+                      </div>
+                    </>
+                  )}
                 </div>
-                <input type="file" ref={profilePicInputRef} className="hidden" accept="image/*" onChange={handleAvatarChange} />
+                <input type="file" ref={profilePicInputRef} className="hidden" accept="image/*" onChange={handleAvatarChange} disabled={isUploading} />
+                {error && <p className="text-[10px] text-red-500 font-bold mt-2">{error}</p>}
               </div>
 
               <div className="space-y-1">
@@ -197,6 +217,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
       <div className="bg-white dark:bg-slate-900 rounded-[32px] shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden">
         <MenuOption icon="📦" title={t.ORDER_HISTORY} onClick={() => onNavigate('ORDERS')} />
         <MenuOption icon="📍" title={t.DELIVERY_ADDRESS} onClick={() => onNavigate('ADDRESS_LIST')} />
+        <MenuOption icon="📜" title={lang === 'bn' ? 'প্রাইভেসি পলিসি' : 'Privacy Policy'} onClick={() => onShowLegal('PRIVACY')} />
+        <MenuOption icon="⚖️" title={lang === 'bn' ? 'টার্মস এন্ড কন্ডিশন' : 'Terms & Conditions'} onClick={() => onShowLegal('TERMS')} />
         <MenuOption icon="🧮" title={lang === 'bn' ? 'বাজার ক্যালকুলেটর' : 'Bazar Calculator'} onClick={() => onNavigate('BAZAR_CALCULATOR')} />
         <MenuOption icon="⚙️" title={t.SETTINGS} onClick={() => onNavigate('SETTINGS')} />
         <MenuOption icon="🚪" title={t.LOGOUT} isDanger last onClick={() => setShowLogoutConfirm(true)} />

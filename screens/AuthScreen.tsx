@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { User, SystemSettings } from '../types';
 import { storage } from '../utils/storage';
+import { auth, db, signInWithGoogle, handleFirestoreError, OperationType } from '../firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 
 interface AuthScreenProps {
   onLogin: (user: User) => void;
@@ -19,7 +22,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleAuth = (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     
@@ -32,104 +35,79 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
       return;
     }
 
-    const normalizedPhone = trimmedPhone.toLowerCase();
-    const isSpecialAccount = normalizedPhone === 'admin' || normalizedPhone === 'i am user';
-
-    if (!isSpecialAccount && trimmedPhone.length < 11) {
-      setError('সঠিক ফোন নম্বর প্রদান করুন (কমপক্ষে ১১ ডিজিট)');
-      return;
-    }
-
     setIsLoading(true);
 
-    const ADMIN_USERNAME = 'admin';
-    const ADMIN_PASSWORD = '22428';
-    
-    const GUEST_USER_ID = 'i am user';
-    const GUEST_USER_PASS = 'user';
+    try {
+      // For this app, we'll use email-like login for Firebase Auth
+      // by appending a dummy domain to the phone number
+      const email = `${trimmedPhone}@bismillah.com`;
 
-    setTimeout(() => {
-      try {
-        const users: User[] = JSON.parse(localStorage.getItem('users') || '[]');
-
-        if (mode === 'LOGIN') {
-          if (normalizedPhone === ADMIN_USERNAME) {
-            if (password === ADMIN_PASSWORD) {
-              const savedAdmin = users.find(u => u.phone.toLowerCase() === ADMIN_USERNAME);
-              const adminUser: User = savedAdmin || { id: 'admin-001', name: 'Tamim Hasan Shaon', phone: ADMIN_USERNAME, isAdmin: true };
-              onLogin(adminUser);
-              return;
-            } else {
-              setError('অ্যাডমিন পাসওয়ার্ড সঠিক নয়!');
-              setIsLoading(false);
-              return;
-            }
-          }
-
-          if (normalizedPhone === GUEST_USER_ID) {
-            if (password === GUEST_USER_PASS) {
-              const savedGuest = users.find(u => u.phone.toLowerCase() === GUEST_USER_ID);
-              const normalUser: User = savedGuest || { id: 'u-guest-001', name: 'Regular User', phone: GUEST_USER_ID, isAdmin: false };
-              onLogin(normalUser);
-              return;
-            } else {
-              setError('পাসওয়ার্ড সঠিক নয়!');
-              setIsLoading(false);
-              return;
-            }
-          }
-
-          const existingUser = users.find(u => u.phone.trim() === trimmedPhone);
-          if (!existingUser) {
-            setError('এই ফোন নম্বরটি দিয়ে কোনো অ্যাকাউন্ট পাওয়া যায়নি');
-            setIsLoading(false);
-            return;
-          }
-
-          if (existingUser.password === password) {
-            onLogin(existingUser);
-          } else {
-            setError('পাসওয়ার্ড সঠিক নয়! দয়া করে আবার চেষ্টা করুন।');
-            setIsLoading(false);
-          }
-        } else if (mode === 'REGISTER') {
-          if (isSpecialAccount) {
-            setError('এই ইউজারনেমটি ব্যবহার করা যাবে না');
-            setIsLoading(false);
-            return;
-          }
-
-          const existingUser = users.find(u => u.phone.trim() === trimmedPhone);
-          if (existingUser) {
-            // Smart Login: If user exists and password matches, log them in immediately
-            if (existingUser.password === password) {
-              onLogin(existingUser);
-              return;
-            } else {
-              setError('এই নম্বরটি ইতিমধ্যে ব্যবহার করা হয়েছে এবং পাসওয়ার্ড ভুল।');
-              setIsLoading(false);
-              return;
-            }
-          }
-
-          const newUser: User = { 
-            id: 'u-' + Date.now(), 
-            name: trimmedName, 
-            phone: trimmedPhone, 
-            password: password, 
-            isAdmin: false 
+      if (mode === 'LOGIN') {
+        const userCredential = await signInWithEmailAndPassword(auth, email, trimmedPassword);
+        const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+        
+        if (userDoc.exists()) {
+          onLogin(userDoc.data() as User);
+        } else {
+          // Fallback for special accounts or if doc missing
+          const userData: User = {
+            id: userCredential.user.uid,
+            name: userCredential.user.displayName || 'User',
+            phone: trimmedPhone,
+            isAdmin: trimmedPhone === 'admin',
           };
-          
-          const updatedUsers = [...users, newUser];
-          storage.save('users', updatedUsers);
-          onLogin(newUser);
+          onLogin(userData);
         }
-      } catch (err) {
-        console.error("Auth error:", err);
-        setError('একটি সমস্যা হয়েছে। আবার চেষ্টা করুন।');
-        setIsLoading(false);
+      } else {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, trimmedPassword);
+        const newUser: User = {
+          id: userCredential.user.uid,
+          name: trimmedName,
+          phone: trimmedPhone,
+          isAdmin: false,
+        };
+        await setDoc(doc(db, 'users', newUser.id), newUser);
+        onLogin(newUser);
       }
-    }, 800);
+    } catch (err: any) {
+      console.error("Auth error:", err);
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setError('ফোন নম্বর বা পাসওয়ার্ড সঠিক নয়');
+      } else if (err.code === 'auth/email-already-in-use') {
+        setError('এই নম্বরটি ইতিমধ্যে ব্যবহার করা হয়েছে');
+      } else {
+        setError('একটি সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    try {
+      const result = await signInWithGoogle();
+      const userDoc = await getDoc(doc(db, 'users', result.user.uid));
+      
+      if (userDoc.exists()) {
+        onLogin(userDoc.data() as User);
+      } else {
+        const newUser: User = {
+          id: result.user.uid,
+          name: result.user.displayName || 'Google User',
+          phone: result.user.phoneNumber || '',
+          avatar: result.user.photoURL || undefined,
+          isAdmin: false,
+        };
+        await setDoc(doc(db, 'users', newUser.id), newUser);
+        onLogin(newUser);
+      }
+    } catch (err) {
+      console.error("Google login error:", err);
+      setError('গুগল লগইন ব্যর্থ হয়েছে');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleForgotPassword = () => {
@@ -258,6 +236,20 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
               )}
             </button>
         </form>
+
+        <div className="relative py-4">
+          <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-100 dark:border-slate-800"></div></div>
+          <div className="relative flex justify-center text-[10px] uppercase font-black text-gray-400"><span className="bg-white dark:bg-slate-950 px-4">Or continue with</span></div>
+        </div>
+
+        <button 
+          onClick={handleGoogleLogin}
+          disabled={isLoading}
+          className="w-full bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 text-gray-700 dark:text-white py-4 rounded-2xl font-black text-sm shadow-sm active:scale-95 transition-all flex items-center justify-center gap-3"
+        >
+          <img src="https://cdn-icons-png.flaticon.com/512/300/300221.png" className="w-5 h-5" alt="Google" />
+          Google দিয়ে লগইন করুন
+        </button>
 
         <div className="text-center pt-4">
           <button 

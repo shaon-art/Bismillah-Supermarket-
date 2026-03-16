@@ -344,6 +344,15 @@ export const DUMMY_ORDERS: Order[] = [
       { name: 'তাজা লাল আপেল', quantity: 2, price: 560 },
       { name: 'দেশি পেঁয়াজ', quantity: 1, price: 110 },
       { name: 'চিনিগুড়া চাল', quantity: 2, price: 320 }
-    ]
+    ],
+    deliveryAddress: {
+      id: 'addr-1',
+      label: 'Home',
+      receiverName: 'User',
+      phone: '01700000000',
+      details: 'Dhaka, Bangladesh',
+      isDefault: true
+    },
+    userId: 'guest'
   }
 ];

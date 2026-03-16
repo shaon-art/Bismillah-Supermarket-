@@ -93,7 +93,8 @@ export interface Order {
     phone?: string;
     trxId?: string;
   };
-  deliveryAddress?: Address;
+  deliveryAddress: Address;
+  userId: string;
 }
 
 export interface TrackingStep {
@@ -112,4 +113,4 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
-export type Screen = 'AUTH' | 'HOME' | 'CATEGORIES' | 'CART' | 'PROFILE' | 'GUIDE' | 'PRODUCT_DETAIL' | 'ORDERS' | 'TRACKING' | 'SETTINGS' | 'COUPONS' | 'ADDRESS_LIST' | 'MESSAGES' | 'PRODUCT_MANAGEMENT' | 'USER_MANAGEMENT' | 'ADMIN_CONTROL' | 'CATEGORY_MANAGEMENT' | 'BAZAR_CALCULATOR';
+export type Screen = 'AUTH' | 'HOME' | 'CATEGORIES' | 'CART' | 'PROFILE' | 'GUIDE' | 'PRODUCT_DETAIL' | 'ORDERS' | 'TRACKING' | 'SETTINGS' | 'COUPONS' | 'ADDRESS_LIST' | 'MESSAGES' | 'PRODUCT_MANAGEMENT' | 'USER_MANAGEMENT' | 'ADMIN_CONTROL' | 'CATEGORY_MANAGEMENT' | 'BAZAR_CALCULATOR' | 'LEGAL';
