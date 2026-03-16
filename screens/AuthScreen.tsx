@@ -28,58 +28,29 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
     
     const trimmedPhone = phone.trim();
     const trimmedPassword = password.trim();
-    const trimmedName = name.trim();
 
-    if (!trimmedPhone || !trimmedPassword || (mode === 'REGISTER' && !trimmedName)) {
+    if (!trimmedPhone || !trimmedPassword) {
       setError('দয়া করে সব ঘর পূরণ করুন');
       return;
     }
 
     setIsLoading(true);
 
-    try {
-      // For this app, we'll use email-like login for Firebase Auth
-      // by appending a dummy domain to the phone number
-      const email = `${trimmedPhone}@bismillah.com`;
-
-      if (mode === 'LOGIN') {
-        const userCredential = await signInWithEmailAndPassword(auth, email, trimmedPassword);
-        const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
-        
-        if (userDoc.exists()) {
-          onLogin(userDoc.data() as User);
-        } else {
-          // Fallback for special accounts or if doc missing
-          const userData: User = {
-            id: userCredential.user.uid,
-            name: userCredential.user.displayName || 'User',
-            phone: trimmedPhone,
-            isAdmin: trimmedPhone === 'admin',
-          };
-          onLogin(userData);
-        }
-      } else {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, trimmedPassword);
-        const newUser: User = {
-          id: userCredential.user.uid,
-          name: trimmedName,
-          phone: trimmedPhone,
-          isAdmin: false,
-        };
-        await setDoc(doc(db, 'users', newUser.id), newUser);
-        onLogin(newUser);
-      }
-    } catch (err: any) {
-      console.error("Auth error:", err);
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        setError('ফোন নম্বর বা পাসওয়ার্ড সঠিক নয়');
-      } else if (err.code === 'auth/email-already-in-use') {
-        setError('এই নম্বরটি ইতিমধ্যে ব্যবহার করা হয়েছে');
-      } else {
-        setError('একটি সমস্যা হয়েছে। আবার চেষ্টা করুন।');
-      }
-    } finally {
+    // Simple hardcoded login as requested
+    if (trimmedPhone === 'admin' && trimmedPassword === '22428') {
+      const adminUser: User = {
+        id: 'admin-id',
+        name: 'Admin User',
+        phone: 'admin',
+        isAdmin: true,
+      };
+      onLogin(adminUser);
       setIsLoading(false);
+    } else {
+      setTimeout(() => {
+        setError('ইউজারনেম বা পাসওয়ার্ড সঠিক নয়');
+        setIsLoading(false);
+      }, 500);
     }
   };
 
@@ -110,22 +81,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
     }
   };
 
-  const handleForgotPassword = () => {
-    const adminNumber = settings.supportPhone.replace(/\D/g, ''); // Use support phone from settings
-    const fmtPhone = adminNumber.startsWith('88') ? adminNumber : (adminNumber.startsWith('0') ? '88' + adminNumber : '880' + adminNumber);
-    
-    let message = "আসসালামু আলাইকুম এডমিন,\n\nআমি আমার বিসমিল্লাহ সুপার মার্কেট অ্যাকাউন্টের পাসওয়ার্ড ভুলে গেছি। দয়া করে আমাকে পাসওয়ার্ড রিসেট করতে সাহায্য করুন।";
-
-    if (phone.trim()) {
-        message += `\n\nআমার ফোন নম্বর: ${phone.trim()}`;
-    } else {
-        message += `\n(আমি লগইন পেজ থেকে মেসেজটি দিচ্ছি)`;
-    }
-
-    const url = `https://wa.me/${fmtPhone}?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
-  };
-
   const handleDeveloperClick = () => {
     window.open('https://www.facebook.com/tamimhasanshaon2', '_blank');
   };
@@ -151,55 +106,30 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
           <div className="flex items-center justify-center gap-2 mt-2">
             <span className="w-2 h-0.5 bg-green-500 rounded-full"></span>
             <p className="text-gray-400 dark:text-gray-500 text-[10px] font-black uppercase tracking-[0.2em]">
-              {mode === 'LOGIN' ? 'Welcome Back' : 'Join Our Family'}
+              Admin Login Only
             </p>
             <span className="w-2 h-0.5 bg-green-500 rounded-full"></span>
           </div>
         </div>
 
         <form onSubmit={handleAuth} className="space-y-4">
-            {mode === 'REGISTER' && (
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">আপনার নাম</label>
-                <input 
-                  type="text" 
-                  autoComplete="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-600 transition-all font-bold text-sm dark:text-white" 
-                  placeholder="আপনার নাম লিখুন"
-                />
-              </div>
-            )}
-
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">ফোন নম্বর</label>
+              <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">ইউজারনেম</label>
               <input 
                 type="text" 
                 autoComplete="username"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-600 transition-all font-bold text-sm dark:text-white" 
-                placeholder={mode === 'LOGIN' ? "admin / ০১৭xxxxxxxx" : "০১৭xxxxxxxx"}
+                placeholder="admin"
               />
             </div>
 
             <div className="space-y-1">
-              <div className="flex justify-between items-center px-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">পাসওয়ার্ড</label>
-                {mode === 'LOGIN' && (
-                  <button 
-                    type="button"
-                    onClick={handleForgotPassword}
-                    className="text-[10px] font-black text-green-600 hover:text-green-700 uppercase flex items-center gap-1"
-                  >
-                    <span>💬</span> পাসওয়ার্ড ভুলে গেছেন?
-                  </button>
-                )}
-              </div>
+              <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">পাসওয়ার্ড</label>
               <input 
                 type="password" 
-                autoComplete={mode === 'LOGIN' ? "current-password" : "new-password"}
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-600 transition-all font-bold text-sm dark:text-white" 
@@ -208,19 +138,10 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
             </div>
 
             {error && (
-              <div className={`p-3 rounded-xl border animate-bounce text-center ${error.includes('ইতিমধ্যে') ? 'bg-orange-50 border-orange-100 text-orange-600' : 'bg-red-50 border-red-100 text-red-500'}`}>
+              <div className="p-3 rounded-xl border animate-bounce text-center bg-red-50 border-red-100 text-red-500">
                 <p className="text-[11px] font-bold">
                   ⚠️ {error}
                 </p>
-                {error.includes('ইতিমধ্যে') && (
-                    <button 
-                      type="button" 
-                      onClick={() => { setMode('LOGIN'); setError(''); }}
-                      className="text-[10px] font-black underline mt-1 uppercase"
-                    >
-                      লগইন পেজে যান
-                    </button>
-                )}
               </div>
             )}
 
@@ -232,7 +153,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               ) : (
-                mode === 'LOGIN' ? 'লগইন করুন' : 'অ্যাকাউন্ট খুলুন'
+                'লগইন করুন'
               )}
             </button>
         </form>
@@ -250,20 +171,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
           <img src="https://cdn-icons-png.flaticon.com/512/300/300221.png" className="w-5 h-5" alt="Google" />
           Google দিয়ে লগইন করুন
         </button>
-
-        <div className="text-center pt-4">
-          <button 
-            type="button"
-            onClick={() => { setMode(mode === 'LOGIN' ? 'REGISTER' : 'LOGIN'); setError(''); }}
-            className="text-xs font-bold text-gray-400 hover:text-green-600 transition-colors"
-          >
-            {mode === 'LOGIN' ? (
-              <>অ্যাকাউন্ট নেই? <span className="text-green-600 font-black">নতুন খুলুন</span></>
-            ) : (
-              <>ইতিমধ্যেই অ্যাকাউন্ট আছে? <span className="text-green-600 font-black">লগইন করুন</span></>
-            )}
-          </button>
-        </div>
 
         <div 
           onClick={handleDeveloperClick}

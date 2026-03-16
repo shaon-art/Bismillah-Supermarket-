@@ -83,16 +83,6 @@ const UserManagementScreen: React.FC<UserManagementScreenProps> = ({ onBack, lan
     }
   };
 
-  const toggleAdminStatus = (user: User) => {
-    const confirmMsg = user.isAdmin 
-      ? (lang === 'bn' ? 'এই ইউজারের অ্যাডমিন ক্ষমতা কেড়ে নিতে চান?' : 'Remove admin privileges for this user?')
-      : (lang === 'bn' ? 'এই ইউজারকে অ্যাডমিন বানাতে চান?' : 'Promote this user to Admin?');
-    
-    if (window.confirm(confirmMsg)) {
-      handleUpdateUser({ ...user, isAdmin: !user.isAdmin });
-    }
-  };
-
   const generateRandomPassword = () => {
     if (!editingUser) return;
     const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$";
@@ -171,15 +161,6 @@ const UserManagementScreen: React.FC<UserManagementScreenProps> = ({ onBack, lan
                     title={lang === 'bn' ? 'এডিট করুন' : 'Edit User'}
                   >
                     ✏️
-                  </button>
-                  <button 
-                    onClick={() => toggleAdminStatus(user)}
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm transition-all ${
-                      user.isAdmin ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-400'
-                    }`}
-                    title={lang === 'bn' ? 'অ্যাডমিন স্ট্যাটাস' : 'Toggle Admin'}
-                  >
-                    🛡️
                   </button>
                   <button 
                     onClick={() => handleDeleteUser(user.id)}

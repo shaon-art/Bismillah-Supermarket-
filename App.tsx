@@ -163,9 +163,13 @@ const App: React.FC = () => {
           console.error("Error fetching user data:", err);
         }
       } else {
-        setCurrentUser(null);
-        storage.save('currentUser', null);
-        setCurrentScreen('AUTH');
+        // Only clear if it's not the simple admin
+        const current = storage.load<User | null>('currentUser', null);
+        if (!current || current.id !== 'admin-id') {
+          setCurrentUser(null);
+          storage.save('currentUser', null);
+          setCurrentScreen('AUTH');
+        }
       }
     });
 
@@ -423,7 +427,9 @@ const App: React.FC = () => {
 
   const renderScreen = () => {
     const adminScreens: Screen[] = ['ADMIN_CONTROL', 'PRODUCT_MANAGEMENT', 'CATEGORY_MANAGEMENT', 'USER_MANAGEMENT'];
-    if (adminScreens.includes(currentScreen) && !currentUser?.isAdmin) {
+    const isActuallyAdmin = !!(currentUser?.isAdmin && currentUser?.phone === 'admin');
+    
+    if (adminScreens.includes(currentScreen) && !isActuallyAdmin) {
       return <HomeScreen products={products} categories={categories} recentlyViewed={products.filter(p => recentlyViewedIds.includes(p.id))} onProductClick={handleProductClick} onAddToCart={addToCart} onNavigate={setCurrentScreen} onCategoryClick={handleCategoryClick} lang={language} settings={systemSettings} />;
     }
 
@@ -432,17 +438,17 @@ const App: React.FC = () => {
       case 'HOME': return <HomeScreen products={products} categories={categories} recentlyViewed={products.filter(p => recentlyViewedIds.includes(p.id))} onProductClick={handleProductClick} onAddToCart={addToCart} onNavigate={setCurrentScreen} onCategoryClick={handleCategoryClick} lang={language} settings={systemSettings} />;
       case 'CATEGORIES': return <CategoryScreen products={products} categories={categories} onProductClick={handleProductClick} onAddToCart={addToCart} settings={systemSettings} initialCategoryId={targetCategory || undefined} />;
       case 'CART': return <CartScreen cart={cart} addresses={addresses} onUpdateQty={(id, d) => setCart(p => p.map(i => i.id === id ? {...i, quantity: Math.max(1, i.quantity+d)} : i))} onRemove={id => setCart(p => p.filter(i => i.id !== id))} onClearCart={() => setCart([])} onPlaceOrder={handlePlaceOrder} onManageAddresses={() => setCurrentScreen('ADDRESS_LIST')} lang={language} isStoreOpen={systemSettings.isStoreOpen} deliveryCharge={systemSettings.deliveryCharge} supportPhone={systemSettings.supportPhone} />;
-      case 'PROFILE': return <ProfileScreen currentUser={currentUser!} isAdmin={currentUser!.isAdmin} onLogout={handleLogout} onUpdateUser={handleUpdateUser} onNavigate={setCurrentScreen} onShowLegal={(type) => { setLegalType(type); setCurrentScreen('LEGAL'); }} lang={language} />;
+      case 'PROFILE': return <ProfileScreen currentUser={currentUser!} isAdmin={isActuallyAdmin} onLogout={handleLogout} onUpdateUser={handleUpdateUser} onNavigate={setCurrentScreen} onShowLegal={(type) => { setLegalType(type); setCurrentScreen('LEGAL'); }} lang={language} />;
       case 'MESSAGES': return <MessagingScreen messages={messages} onSendMessage={handleSendMessage} isTyping={isTyping} onBack={() => setCurrentScreen('HOME')} lang={language} settings={systemSettings} />;
-      case 'ORDERS': return <OrderListScreen orders={orders} isAdmin={currentUser!.isAdmin} onBack={() => setCurrentScreen('PROFILE')} onCancelOrder={id => handleUpdateOrderStatus(id, 'CANCELED')} onAcceptOrder={id => handleUpdateOrderStatus(id, 'ACCEPTED')} onTrackOrder={o => {setSelectedOrderForTracking(o); setCurrentScreen('TRACKING');}} lang={language} deliveryCharge={systemSettings.deliveryCharge} />;
-      case 'TRACKING': return selectedOrderForTracking ? <TrackingScreen order={selectedOrderForTracking} isAdmin={currentUser!.isAdmin} onBack={() => setCurrentScreen('ORDERS')} onUpdateStatus={handleUpdateOrderStatus} /> : null;
-      case 'SETTINGS': return <SettingsScreen isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} language={language} onSetLanguage={setLanguage} notifications={notificationsEnabled} onToggleNotifications={() => setNotificationsEnabled(!notificationsEnabled)} sounds={soundsEnabled} onToggleSounds={() => setSoundsEnabled(!soundsEnabled)} onBack={() => setCurrentScreen('PROFILE')} onLogout={handleLogout} isAdmin={currentUser?.isAdmin} onNavigate={setCurrentScreen} />;
-      case 'PRODUCT_DETAIL': return selectedProduct ? <ProductDetailScreen product={selectedProduct} isAdmin={currentUser!.isAdmin} categories={categories} isFavorite={favorites.includes(selectedProduct.id)} onToggleFavorite={() => setFavorites(p=>p.includes(selectedProduct.id)?p.filter(i=>i!==selectedProduct.id):[...p,selectedProduct.id])} onAddToCart={addToCart} onBack={() => setCurrentScreen('HOME')} onUpdateProduct={handleUpdateProduct} onDeleteProduct={handleDeleteProduct} lang={language} settings={systemSettings} /> : null;
+      case 'ORDERS': return <OrderListScreen orders={orders} isAdmin={isActuallyAdmin} onBack={() => setCurrentScreen('PROFILE')} onCancelOrder={id => handleUpdateOrderStatus(id, 'CANCELED')} onAcceptOrder={id => handleUpdateOrderStatus(id, 'ACCEPTED')} onTrackOrder={o => {setSelectedOrderForTracking(o); setCurrentScreen('TRACKING');}} lang={language} deliveryCharge={systemSettings.deliveryCharge} />;
+      case 'TRACKING': return selectedOrderForTracking ? <TrackingScreen order={selectedOrderForTracking} isAdmin={isActuallyAdmin} onBack={() => setCurrentScreen('ORDERS')} onUpdateStatus={handleUpdateOrderStatus} /> : null;
+      case 'SETTINGS': return <SettingsScreen isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} language={language} onSetLanguage={setLanguage} notifications={notificationsEnabled} onToggleNotifications={() => setNotificationsEnabled(!notificationsEnabled)} sounds={soundsEnabled} onToggleSounds={() => setSoundsEnabled(!soundsEnabled)} onBack={() => setCurrentScreen('PROFILE')} onLogout={handleLogout} isAdmin={isActuallyAdmin} onNavigate={setCurrentScreen} />;
+      case 'PRODUCT_DETAIL': return selectedProduct ? <ProductDetailScreen product={selectedProduct} isAdmin={isActuallyAdmin} categories={categories} isFavorite={favorites.includes(selectedProduct.id)} onToggleFavorite={() => setFavorites(p=>p.includes(selectedProduct.id)?p.filter(i=>i!==selectedProduct.id):[...p,selectedProduct.id])} onAddToCart={addToCart} onBack={() => setCurrentScreen('HOME')} onUpdateProduct={handleUpdateProduct} onDeleteProduct={handleDeleteProduct} lang={language} settings={systemSettings} /> : null;
       case 'ADMIN_CONTROL': return <AdminControlScreen settings={systemSettings} products={products} orders={orders} onUpdateSettings={handleUpdateSettings} onBack={() => setCurrentScreen('PROFILE')} onNavigate={setCurrentScreen} lang={language} />;
       case 'PRODUCT_MANAGEMENT': return <ProductManagementScreen products={products} categories={categories} onBack={() => setCurrentScreen('ADMIN_CONTROL')} onAddProduct={handleAddProduct} onUpdateProduct={handleUpdateProduct} onDeleteProduct={handleDeleteProduct} onNavigate={setCurrentScreen} lang={language} />;
       case 'CATEGORY_MANAGEMENT': return <CategoryManagementScreen categories={categories} onBack={() => setCurrentScreen('ADMIN_CONTROL')} onAddCategory={handleAddCategory} onUpdateCategory={handleUpdateCategory} onDeleteCategory={handleDeleteCategory} lang={language} />;
       case 'USER_MANAGEMENT': return <UserManagementScreen onBack={() => setCurrentScreen('ADMIN_CONTROL')} lang={language} />;
-      case 'ADDRESS_LIST': return <AddressListScreen addresses={addresses} onBack={() => setCurrentScreen('PROFILE')} onAddAddress={a=>setAddresses(p=>[...p,a])} onUpdateAddress={a=>setAddresses(p=>p.map(i=>i.id===a.id?a:i))} onDeleteAddress={id=>setAddresses(p=>p.filter(i=>i.id!==id))} onSetDefault={id=>setAddresses(p=>p.map(i=>({...i,isDefault:i.id===id})))} />;
+      case 'ADDRESS_LIST': return <AddressListScreen addresses={addresses} onBack={() => setCurrentScreen('PROFILE')} onAddAddress={a=>setAddresses(p=>[...p,a])} onUpdateAddress={a=>setAddresses(p=>p.map(i=>i.id===a.id?a:i))} onDeleteAddress={id=>setAddresses(p=>p.filter(i=>i.id !== id))} onSetDefault={id=>setAddresses(p=>p.map(i=>({...i,isDefault:i.id===id})))} />;
       case 'BAZAR_CALCULATOR': return <BazarCalculatorScreen onBack={() => setCurrentScreen('PROFILE')} lang={language} />;
       case 'COUPONS': return <CouponScreen onBack={() => setCurrentScreen('HOME')} />;
       case 'LEGAL': return <LegalScreen type={legalType} onBack={() => setCurrentScreen('PROFILE')} lang={language} />;
