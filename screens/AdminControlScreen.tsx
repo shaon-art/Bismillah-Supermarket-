@@ -498,6 +498,17 @@ const AdminControlScreen: React.FC<AdminControlScreenProps> = ({
              <div className="pt-4 border-t border-slate-50 dark:border-slate-800 space-y-4">
                 <div>
                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 block mb-1">
+                      {lang === 'bn' ? 'ব্রডকাস্ট মেসেজ (সবার জন্য)' : 'Broadcast Message (For All Users)'}
+                   </label>
+                   <textarea 
+                      value={settings.broadcastMessage} 
+                      onChange={e => handleValueChange('broadcastMessage', e.target.value)} 
+                      placeholder={lang === 'bn' ? 'এখানে মেসেজ লিখুন...' : 'Type message here...'}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-[11px] font-bold dark:text-white focus:ring-2 focus:ring-green-500/20 outline-none transition-all min-h-[80px] resize-none"
+                   />
+                </div>
+                <div>
+                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 block mb-1">
                       {lang === 'bn' ? 'দোকানের লোগো (URL/Upload)' : 'Store Logo (URL/Upload)'}
                    </label>
                    <div className="flex gap-2">

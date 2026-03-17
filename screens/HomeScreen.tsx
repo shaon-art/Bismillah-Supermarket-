@@ -50,6 +50,18 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ products, categories, recentlyV
         </div>
       </div>
 
+      {/* Broadcast Message */}
+      {settings.broadcastMessage && (
+        <div className="px-5">
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 rounded-2xl p-4 flex items-start gap-3 animate-pulse-slow">
+            <span className="text-xl">📢</span>
+            <p className="text-xs font-bold text-green-800 dark:text-green-300 leading-relaxed">
+              {settings.broadcastMessage}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Hide Banner & Recent Items during search to focus on results */}
       {!isSearching && (
         <>

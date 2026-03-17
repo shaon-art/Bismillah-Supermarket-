@@ -179,19 +179,15 @@ const App: React.FC = () => {
     // 2. Listen for Products
     const unsubProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
       const list = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Product));
-      if (list.length > 0) {
-        setProducts(list);
-        storage.save('products_v1', list);
-      }
+      setProducts(list);
+      storage.save('products_v1', list);
     }, (err) => handleFirestoreError(err, OperationType.LIST, 'products'));
 
     // 3. Listen for Categories
     const unsubCategories = onSnapshot(collection(db, 'categories'), (snapshot) => {
       const list = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Category));
-      if (list.length > 0) {
-        setCategories(list);
-        storage.save('categories_v1', list);
-      }
+      setCategories(list);
+      storage.save('categories_v1', list);
     }, (err) => handleFirestoreError(err, OperationType.LIST, 'categories'));
 
     // 4. Listen for Settings
@@ -325,9 +321,15 @@ const App: React.FC = () => {
     }
   };
 
-  const handleUpdateUser = (updatedUser: User) => {
+  const handleUpdateUser = async (updatedUser: User) => {
     setCurrentUser(updatedUser);
     storage.save('currentUser', updatedUser);
+    
+    try {
+      await updateDoc(doc(db, 'users', updatedUser.id), { ...updatedUser });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `users/${updatedUser.id}`);
+    }
     
     // Also update the user in the global users list to persist changes across logins
     const users = storage.getUsers();

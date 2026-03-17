@@ -33,6 +33,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState('');
   
+  const [isSaving, setIsSaving] = useState(false);
+  
   const [editUserData, setEditUserData] = useState<Partial<User>>({
     name: currentUser.name,
     phone: currentUser.phone,
@@ -40,10 +42,28 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
     password: currentUser.password
   });
 
-  const handleProfileSave = () => {
+  const openEditModal = () => {
+    setEditUserData({
+      name: currentUser.name,
+      phone: currentUser.phone,
+      avatar: currentUser.avatar,
+      password: currentUser.password
+    });
+    setShowEditProfileModal(true);
+  };
+
+  const handleProfileSave = async () => {
     if (!editUserData.name?.trim() || !editUserData.phone?.trim()) return;
-    onUpdateUser({ ...currentUser, ...editUserData } as User);
-    setShowEditProfileModal(false);
+    setIsSaving(true);
+    try {
+      await onUpdateUser({ ...currentUser, ...editUserData } as User);
+      setShowEditProfileModal(false);
+    } catch (err) {
+      console.error("Profile update failed:", err);
+      setError(lang === 'bn' ? 'প্রোফাইল আপডেট ব্যর্থ হয়েছে' : 'Profile update failed');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,7 +103,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
             {currentUser.avatar ? <img src={currentUser.avatar} className="w-full h-full object-cover" /> : currentUser.name.charAt(0)}
           </div>
           <button 
-            onClick={() => setShowEditProfileModal(true)}
+            onClick={openEditModal}
             className="absolute bottom-0 right-0 w-10 h-10 bg-green-600 text-white rounded-2xl flex items-center justify-center shadow-lg border-4 border-white dark:border-slate-900 active:scale-90 transition-transform"
           >
             ✏️
@@ -179,8 +199,16 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 <button onClick={() => setShowEditProfileModal(false)} className="flex-1 py-4 text-xs font-black text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-slate-800 rounded-2xl">
                   {t.CANCEL}
                 </button>
-                <button onClick={handleProfileSave} className="flex-1 py-4 text-xs font-black text-white uppercase tracking-widest bg-green-600 rounded-2xl shadow-lg shadow-green-100 dark:shadow-none active:scale-95">
-                  {t.SAVE}
+                <button 
+                  onClick={handleProfileSave} 
+                  disabled={isSaving || isUploading}
+                  className="flex-1 py-4 text-xs font-black text-white uppercase tracking-widest bg-green-600 rounded-2xl shadow-lg shadow-green-100 dark:shadow-none active:scale-95 disabled:opacity-50 flex items-center justify-center"
+                >
+                  {isSaving ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  ) : (
+                    t.SAVE
+                  )}
                 </button>
               </div>
             </div>
