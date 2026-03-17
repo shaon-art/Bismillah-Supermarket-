@@ -235,7 +235,10 @@ const App: React.FC = () => {
 
   const handleUpdateProduct = async (updatedProduct: Product) => {
     try {
-      await updateDoc(doc(db, 'products', updatedProduct.id), { ...updatedProduct });
+      const cleanProduct = Object.fromEntries(
+        Object.entries(updatedProduct).filter(([_, v]) => v !== undefined)
+      );
+      await updateDoc(doc(db, 'products', updatedProduct.id), cleanProduct);
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `products/${updatedProduct.id}`);
     }
@@ -268,7 +271,10 @@ const App: React.FC = () => {
   
   const handleUpdateCategory = async (updatedCat: Category) => {
     try {
-      await updateDoc(doc(db, 'categories', updatedCat.id), { ...updatedCat });
+      const cleanCat = Object.fromEntries(
+        Object.entries(updatedCat).filter(([_, v]) => v !== undefined)
+      );
+      await updateDoc(doc(db, 'categories', updatedCat.id), cleanCat);
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `categories/${updatedCat.id}`);
     }
@@ -326,7 +332,11 @@ const App: React.FC = () => {
     storage.save('currentUser', updatedUser);
     
     try {
-      await updateDoc(doc(db, 'users', updatedUser.id), { ...updatedUser });
+      // Remove undefined values to prevent Firestore errors
+      const cleanUser = Object.fromEntries(
+        Object.entries(updatedUser).filter(([_, v]) => v !== undefined)
+      );
+      await updateDoc(doc(db, 'users', updatedUser.id), cleanUser);
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `users/${updatedUser.id}`);
     }
