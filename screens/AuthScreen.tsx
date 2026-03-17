@@ -143,8 +143,11 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
+    setError('');
     try {
       const result = await signInWithGoogle();
+      if (!result.user) throw new Error('No user returned from Google');
+
       const userDoc = await getDoc(doc(db, 'users', result.user.uid));
       
       if (userDoc.exists()) {
@@ -160,9 +163,19 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
         await setDoc(doc(db, 'users', newUser.id), newUser);
         onLogin(newUser);
       }
-    } catch (err) {
-      console.error("Google login error:", err);
-      setError('গুগল লগইন ব্যর্থ হয়েছে');
+    } catch (err: any) {
+      console.error("Google login error details:", err);
+      if (err.code === 'auth/popup-blocked') {
+        setError('পপ-আপ ব্লক করা হয়েছে। দয়া করে পপ-আপ এলাউ করুন।');
+      } else if (err.code === 'auth/cancelled-popup-request') {
+        // User closed the popup, don't show error
+      } else if (err.code === 'auth/popup-closed-by-user') {
+        setError('লগইন উইন্ডো বন্ধ করা হয়েছে');
+      } else if (err.code === 'auth/unauthorized-domain') {
+        setError('এই ডোমেইনটি অথরাইজড নয়। দয়া করে এডমিনকে জানান।');
+      } else {
+        setError(`গুগল লগইন ব্যর্থ হয়েছে: ${err.message || 'Unknown error'}`);
+      }
     } finally {
       setIsLoading(false);
     }

@@ -147,7 +147,9 @@ const App: React.FC = () => {
             setCurrentUser(userData);
             storage.save('currentUser', userData);
           } else {
-            // Fallback if doc doesn't exist yet
+            // If doc doesn't exist, it might be a new user being created in AuthScreen.
+            // We'll set the user state but NOT navigate to HOME yet.
+            // AuthScreen will call onLogin which will handle the navigation.
             const userData: User = {
               id: user.uid,
               name: user.displayName || 'User',
@@ -158,14 +160,19 @@ const App: React.FC = () => {
             setCurrentUser(userData);
             storage.save('currentUser', userData);
           }
-          if (currentScreen === 'AUTH') setCurrentScreen('HOME');
+          
+          // Only auto-navigate if the document actually exists (persistence case)
+          // or if we are already logged in and just refreshing
+          if (currentScreen === 'AUTH' && userDoc.exists()) {
+            setCurrentScreen('HOME');
+          }
         } catch (err) {
           console.error("Error fetching user data:", err);
         }
       } else {
         setCurrentUser(null);
         storage.save('currentUser', null);
-        setCurrentScreen('AUTH');
+        if (currentScreen !== 'AUTH') setCurrentScreen('AUTH');
       }
     });
 
