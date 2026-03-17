@@ -63,7 +63,7 @@ const Logo: React.FC<{ settings: SystemSettings, onClick: () => void }> = ({ set
 
 const SplashScreen: React.FC<{ onFinish: () => void, logo: string }> = ({ onFinish, logo }) => {
   useEffect(() => {
-    const timer = setTimeout(onFinish, 3000);
+    const timer = setTimeout(onFinish, 1200);
     return () => clearTimeout(timer);
   }, [onFinish]);
 
