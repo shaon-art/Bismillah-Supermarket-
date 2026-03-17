@@ -63,6 +63,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
                 id: userCredential.user.uid,
                 name: 'Admin User',
                 phone: 'admin',
+                email: adminEmail,
                 isAdmin: true,
               };
               await setDoc(doc(db, 'users', adminUser.id), adminUser);
@@ -88,6 +89,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
             id: userCredential.user.uid,
             name: 'Admin User',
             phone: 'admin',
+            email: adminEmail,
             isAdmin: true,
           };
           await setDoc(doc(db, 'users', adminUser.id), adminUser);
@@ -122,6 +124,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
           id: userCredential.user.uid,
           name: trimmedName,
           phone: trimmedPhone,
+          email: userEmail,
           isAdmin: false,
         };
         await setDoc(doc(db, 'users', newUser.id), newUser);
@@ -157,6 +160,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
           id: result.user.uid,
           name: result.user.displayName || 'Google User',
           phone: result.user.phoneNumber || '',
+          email: result.user.email || undefined,
           avatar: result.user.photoURL || undefined,
           isAdmin: false,
         };
@@ -195,6 +199,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
               src={settings.storeLogo} 
               alt="Bismillah Supermarket Logo" 
               className="w-full h-full object-contain relative z-10"
+              referrerPolicy="no-referrer"
               onError={(e) => {
                 (e.target as any).src = "https://cdn-icons-png.flaticon.com/512/3724/3724720.png";
               }}
@@ -294,7 +299,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
           disabled={isLoading}
           className="w-full bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 text-gray-700 dark:text-white py-4 rounded-2xl font-black text-sm shadow-sm active:scale-95 transition-all flex items-center justify-center gap-3"
         >
-          <img src="https://cdn-icons-png.flaticon.com/512/300/300221.png" className="w-5 h-5" alt="Google" />
+          <img src="https://cdn-icons-png.flaticon.com/512/300/300221.png" className="w-5 h-5" alt="Google" referrerPolicy="no-referrer" />
           Google দিয়ে লগইন করুন
         </button>
 

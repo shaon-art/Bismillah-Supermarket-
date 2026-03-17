@@ -24,7 +24,7 @@ import LegalScreen from './screens/LegalScreen';
 import { GoogleGenAI } from "@google/genai";
 import { storage } from './utils/storage';
 import { db, auth, handleFirestoreError, OperationType } from './firebase';
-import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, query, orderBy, where, getDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, query, orderBy, where, getDoc, writeBatch } from 'firebase/firestore';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 const Logo: React.FC<{ settings: SystemSettings, onClick: () => void }> = ({ settings, onClick }) => {
@@ -44,6 +44,7 @@ const Logo: React.FC<{ settings: SystemSettings, onClick: () => void }> = ({ set
           src={settings.storeLogo} 
           alt="Logo" 
           className="w-full h-full object-contain"
+          referrerPolicy="no-referrer"
           onError={(e) => {
             (e.target as any).src = "https://cdn-icons-png.flaticon.com/512/3724/3724720.png";
           }}
@@ -75,6 +76,7 @@ const SplashScreen: React.FC<{ onFinish: () => void, logo: string }> = ({ onFini
           src={logo} 
           alt="Store Logo" 
           className="w-full h-full object-contain relative z-10 drop-shadow-md" 
+          referrerPolicy="no-referrer"
           onError={(e) => {
             (e.target as any).src = "https://cdn-icons-png.flaticon.com/512/3724/3724720.png";
           }}
@@ -235,9 +237,7 @@ const App: React.FC = () => {
 
   const handleUpdateProduct = async (updatedProduct: Product) => {
     try {
-      const cleanProduct = Object.fromEntries(
-        Object.entries(updatedProduct).filter(([_, v]) => v !== undefined)
-      );
+      const cleanProduct = JSON.parse(JSON.stringify(updatedProduct));
       await updateDoc(doc(db, 'products', updatedProduct.id), cleanProduct);
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `products/${updatedProduct.id}`);
@@ -246,7 +246,8 @@ const App: React.FC = () => {
 
   const handleAddProduct = async (newProduct: Product) => {
     try {
-      await setDoc(doc(db, 'products', newProduct.id), newProduct);
+      const cleanProduct = JSON.parse(JSON.stringify(newProduct));
+      await setDoc(doc(db, 'products', newProduct.id), cleanProduct);
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, `products/${newProduct.id}`);
     }
@@ -332,10 +333,7 @@ const App: React.FC = () => {
     storage.save('currentUser', updatedUser);
     
     try {
-      // Remove undefined values to prevent Firestore errors
-      const cleanUser = Object.fromEntries(
-        Object.entries(updatedUser).filter(([_, v]) => v !== undefined)
-      );
+      const cleanUser = JSON.parse(JSON.stringify(updatedUser));
       await updateDoc(doc(db, 'users', updatedUser.id), cleanUser);
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `users/${updatedUser.id}`);
@@ -440,9 +438,43 @@ const App: React.FC = () => {
     setCurrentScreen('CATEGORIES');
   };
 
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [seedMessage, setSeedMessage] = useState<string | null>(null);
+
+  const handleSeedProducts = async () => {
+    setIsSeeding(true);
+    setSeedMessage(language === 'bn' ? 'পণ্য ইমপোর্ট হচ্ছে...' : 'Importing products...');
+    
+    try {
+      const batch = writeBatch(db);
+      for (const product of DUMMY_PRODUCTS) {
+        const productRef = doc(db, 'products', product.id);
+        // Firestore doesn't like undefined values, so we strip them
+        const sanitizedProduct = JSON.parse(JSON.stringify(product));
+        batch.set(productRef, sanitizedProduct);
+      }
+      
+      for (const cat of CATEGORIES) {
+        const catRef = doc(db, 'categories', cat.id);
+        const sanitizedCat = JSON.parse(JSON.stringify(cat));
+        batch.set(catRef, sanitizedCat);
+      }
+
+      await batch.commit();
+      setSeedMessage(language === 'bn' ? 'পণ্য সফলভাবে ইমপোর্ট হয়েছে!' : 'Products imported successfully!');
+      setTimeout(() => setSeedMessage(null), 3000);
+    } catch (err) {
+      console.error("Seeding error:", err);
+      setSeedMessage(language === 'bn' ? 'ইমপোর্ট ব্যর্থ হয়েছে' : 'Import failed');
+      setTimeout(() => setSeedMessage(null), 3000);
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
   const renderScreen = () => {
     const adminScreens: Screen[] = ['ADMIN_CONTROL', 'PRODUCT_MANAGEMENT', 'CATEGORY_MANAGEMENT', 'USER_MANAGEMENT'];
-    const isActuallyAdmin = !!(currentUser?.isAdmin && currentUser?.phone === 'admin');
+    const isActuallyAdmin = !!(currentUser?.isAdmin || currentUser?.phone === 'admin' || currentUser?.email === 'tamimshaon@gmail.com');
     
     if (adminScreens.includes(currentScreen) && !isActuallyAdmin) {
       return <HomeScreen products={products} categories={categories} recentlyViewed={products.filter(p => recentlyViewedIds.includes(p.id))} onProductClick={handleProductClick} onAddToCart={addToCart} onNavigate={setCurrentScreen} onCategoryClick={handleCategoryClick} lang={language} settings={systemSettings} />;
@@ -459,8 +491,8 @@ const App: React.FC = () => {
       case 'TRACKING': return selectedOrderForTracking ? <TrackingScreen order={selectedOrderForTracking} isAdmin={isActuallyAdmin} onBack={() => setCurrentScreen('ORDERS')} onUpdateStatus={handleUpdateOrderStatus} /> : null;
       case 'SETTINGS': return <SettingsScreen isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} language={language} onSetLanguage={setLanguage} notifications={notificationsEnabled} onToggleNotifications={() => setNotificationsEnabled(!notificationsEnabled)} sounds={soundsEnabled} onToggleSounds={() => setSoundsEnabled(!soundsEnabled)} onBack={() => setCurrentScreen('PROFILE')} onLogout={handleLogout} isAdmin={isActuallyAdmin} onNavigate={setCurrentScreen} />;
       case 'PRODUCT_DETAIL': return selectedProduct ? <ProductDetailScreen product={selectedProduct} isAdmin={isActuallyAdmin} categories={categories} isFavorite={favorites.includes(selectedProduct.id)} onToggleFavorite={() => setFavorites(p=>p.includes(selectedProduct.id)?p.filter(i=>i!==selectedProduct.id):[...p,selectedProduct.id])} onAddToCart={addToCart} onBack={() => setCurrentScreen('HOME')} onUpdateProduct={handleUpdateProduct} onDeleteProduct={handleDeleteProduct} lang={language} settings={systemSettings} /> : null;
-      case 'ADMIN_CONTROL': return <AdminControlScreen settings={systemSettings} products={products} orders={orders} onUpdateSettings={handleUpdateSettings} onBack={() => setCurrentScreen('PROFILE')} onNavigate={setCurrentScreen} lang={language} />;
-      case 'PRODUCT_MANAGEMENT': return <ProductManagementScreen products={products} categories={categories} settings={systemSettings} onBack={() => setCurrentScreen('ADMIN_CONTROL')} onAddProduct={handleAddProduct} onUpdateProduct={handleUpdateProduct} onDeleteProduct={handleDeleteProduct} onNavigate={setCurrentScreen} lang={language} />;
+      case 'ADMIN_CONTROL': return <AdminControlScreen settings={systemSettings} products={products} orders={orders} onUpdateSettings={handleUpdateSettings} onBack={() => setCurrentScreen('PROFILE')} onNavigate={setCurrentScreen} onSeedProducts={handleSeedProducts} lang={language} />;
+      case 'PRODUCT_MANAGEMENT': return <ProductManagementScreen products={products} categories={categories} settings={systemSettings} onBack={() => setCurrentScreen('ADMIN_CONTROL')} onAddProduct={handleAddProduct} onUpdateProduct={handleUpdateProduct} onDeleteProduct={handleDeleteProduct} onNavigate={setCurrentScreen} onSeedProducts={handleSeedProducts} lang={language} />;
       case 'CATEGORY_MANAGEMENT': return <CategoryManagementScreen categories={categories} onBack={() => setCurrentScreen('ADMIN_CONTROL')} onAddCategory={handleAddCategory} onUpdateCategory={handleUpdateCategory} onDeleteCategory={handleDeleteCategory} lang={language} />;
       case 'USER_MANAGEMENT': return <UserManagementScreen onBack={() => setCurrentScreen('ADMIN_CONTROL')} lang={language} />;
       case 'ADDRESS_LIST': return <AddressListScreen addresses={addresses} onBack={() => setCurrentScreen('PROFILE')} onAddAddress={a=>setAddresses(p=>[...p,a])} onUpdateAddress={a=>setAddresses(p=>p.map(i=>i.id===a.id?a:i))} onDeleteAddress={id=>setAddresses(p=>p.filter(i=>i.id !== id))} onSetDefault={id=>setAddresses(p=>p.map(i=>({...i,isDefault:i.id===id})))} />;
@@ -499,7 +531,13 @@ const App: React.FC = () => {
         )}
 
         <main className={`flex-1 ${isNoScrollScreen ? 'overflow-hidden' : 'overflow-y-auto'} scroll-smooth no-scrollbar relative overscroll-none`}>
-          {renderScreen()}
+          {seedMessage && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold text-sm shadow-2xl animate-bounce border border-slate-800 flex items-center gap-3">
+          {isSeeding && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>}
+          {seedMessage}
+        </div>
+      )}
+      {renderScreen()}
           {isTabScreen && !isNoScrollScreen && (
             <div className="py-8 px-6 text-center opacity-40">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">

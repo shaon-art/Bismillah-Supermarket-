@@ -113,8 +113,8 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({
                 >
                   {/* Product Image */}
                   <div className="relative w-24 h-24 flex-shrink-0 bg-slate-100 dark:bg-slate-800 rounded-2xl overflow-hidden">
-                    <img src={product.image} alt={product.name} className="w-full h-full object-cover mix-blend-overlay" />
-                    <img src={product.image} alt={product.name} className="absolute inset-0 w-full h-full object-cover" />
+                    <img src={product.image} alt={product.name} className="w-full h-full object-cover mix-blend-overlay" referrerPolicy="no-referrer" />
+                    <img src={product.image} alt={product.name} className="absolute inset-0 w-full h-full object-cover" referrerPolicy="no-referrer" />
                     
                     {hasGlobalOffer && !isOutOfStock && (
                       <div className="absolute top-0 left-0 bg-red-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-br-lg shadow-sm z-10">

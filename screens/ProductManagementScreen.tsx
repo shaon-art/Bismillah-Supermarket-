@@ -13,6 +13,7 @@ interface ProductManagementScreenProps {
   onUpdateProduct: (p: Product) => void;
   onDeleteProduct: (id: string) => void;
   onNavigate: (screen: Screen) => void;
+  onSeedProducts: () => void;
   lang: 'bn' | 'en';
 }
 
@@ -25,6 +26,7 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
   onUpdateProduct, 
   onDeleteProduct,
   onNavigate,
+  onSeedProducts,
   lang 
 }) => {
   const [search, setSearch] = useState('');
@@ -254,6 +256,12 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
           >
             + {lang === 'bn' ? 'নতুন পণ্য' : 'New Product'}
           </button>
+          <button 
+            onClick={onSeedProducts}
+            className="bg-purple-600 text-white px-4 py-2 rounded-xl text-xs font-black shadow-lg shadow-purple-900/20 active:scale-95 transition-all ml-2"
+          >
+            🌱 {lang === 'bn' ? 'ডামি' : 'Seed'}
+          </button>
         </div>
 
         {/* Inventory Stats Bar */}
@@ -341,7 +349,7 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
             className={`bg-white dark:bg-slate-900 rounded-[24px] p-4 flex gap-4 border border-slate-100 dark:border-slate-800 shadow-sm transition-all group ${!p.isActive ? 'opacity-70 grayscale-[0.3]' : ''}`}
           >
             <div className="relative w-20 h-20 bg-slate-50 dark:bg-slate-800 rounded-2xl overflow-hidden shrink-0">
-              <img src={p.image} className="w-full h-full object-cover" alt={p.name} />
+              <img src={p.image} className="w-full h-full object-cover" alt={p.name} referrerPolicy="no-referrer" />
               {p.stock === 0 && (
                 <div className="absolute inset-0 bg-red-600/60 backdrop-blur-sm flex items-center justify-center">
                   <span className="text-[8px] font-black text-white uppercase tracking-tighter">Out of Stock</span>
@@ -445,7 +453,7 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
                           <span className="text-[8px] font-black uppercase text-slate-400">Uploading...</span>
                         </div>
                       ) : (
-                        <img src={formData.image} alt="preview" className="w-full h-full object-cover" />
+                        <img src={formData.image} alt="preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                       )}
                     </div>
                     {!isUploading && (

@@ -11,6 +11,7 @@ interface AdminControlScreenProps {
   onUpdateSettings: (settings: SystemSettings) => void;
   onBack: () => void;
   onNavigate: (screen: Screen) => void;
+  onSeedProducts: () => void;
   lang: 'bn' | 'en';
 }
 
@@ -31,6 +32,7 @@ const AdminControlScreen: React.FC<AdminControlScreenProps> = ({
   onUpdateSettings, 
   onBack, 
   onNavigate,
+  onSeedProducts,
   lang 
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -388,6 +390,12 @@ const AdminControlScreen: React.FC<AdminControlScreenProps> = ({
               title={lang === 'bn' ? 'বিভাগ' : 'Catalog'} 
               color="bg-emerald-600" 
               onClick={() => onNavigate('CATEGORY_MANAGEMENT')} 
+            />
+            <ManagementTile 
+              icon="🌱" 
+              title={lang === 'bn' ? 'ডামি পণ্য' : 'Seed Data'} 
+              color="bg-purple-600" 
+              onClick={onSeedProducts} 
             />
           </div>
         </section>

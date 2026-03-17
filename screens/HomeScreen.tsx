@@ -86,6 +86,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ products, categories, recentlyV
                 </button>
               </div>
               <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=300" 
+                   referrerPolicy="no-referrer"
                    className="absolute right-[-20px] top-0 h-full w-1/2 object-cover opacity-60" alt="banner" />
             </div>
           </div>
@@ -110,7 +111,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ products, categories, recentlyV
                       className="flex-shrink-0 w-28 group cursor-pointer"
                     >
                       <div className="aspect-square w-full rounded-xl overflow-hidden bg-gray-100 dark:bg-slate-900 border border-gray-100 dark:border-slate-800 group-active:scale-95 transition-transform mb-1">
-                        <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                        <img src={product.image} alt={product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                       </div>
                       <p className="text-[10px] font-bold text-gray-800 dark:text-gray-300 line-clamp-1 text-center">{product.name}</p>
                       <p className="text-[9px] text-green-700 dark:text-green-400 font-bold text-center">৳{displayPrice}</p>
@@ -227,7 +228,7 @@ const GroceryCard: React.FC<{ product: Product; onClick: () => void; onAdd: () =
       onClick={onClick}
     >
       <div className="relative aspect-square w-full mb-3 rounded-lg overflow-hidden bg-gray-50 dark:bg-slate-800">
-        <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+        <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" referrerPolicy="no-referrer" />
         
         {hasGlobalOffer && (
            <div className="absolute top-2 left-2 bg-red-600 text-white text-[8px] font-black px-2 py-1 rounded shadow-lg z-10 animate-pulse">

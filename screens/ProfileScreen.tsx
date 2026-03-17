@@ -100,7 +100,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
         
         <div className="relative mb-6">
           <div className="w-28 h-28 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center text-5xl border-4 border-white dark:border-slate-800 shadow-xl relative overflow-hidden group/avatar">
-            {currentUser.avatar ? <img src={currentUser.avatar} className="w-full h-full object-cover" /> : currentUser.name.charAt(0)}
+            {currentUser.avatar ? <img src={currentUser.avatar} className="w-full h-full object-cover" referrerPolicy="no-referrer" /> : currentUser.name.charAt(0)}
           </div>
           <button 
             onClick={openEditModal}
@@ -164,7 +164,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
                     <div className="w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
                   ) : (
                     <>
-                      {editUserData.avatar ? <img src={editUserData.avatar} className="w-full h-full object-cover" /> : '📸'}
+                      {editUserData.avatar ? <img src={editUserData.avatar} className="w-full h-full object-cover" referrerPolicy="no-referrer" /> : '📸'}
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <span className="text-[8px] text-white font-black uppercase">Change</span>
                       </div>

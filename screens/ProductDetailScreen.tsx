@@ -115,7 +115,7 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
     <div className="bg-white dark:bg-slate-950 min-h-full flex flex-col transition-colors relative">
       <div className="animate-fadeIn">
       <div className="relative h-[40vh] w-full bg-gray-50 dark:bg-slate-900">
-        <img src={product.image} alt={product.name} className="w-full h-full object-contain" />
+        <img src={product.image} alt={product.name} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
         
         <button onClick={onBack} className="absolute top-6 left-6 bg-white/80 dark:bg-slate-800/80 backdrop-blur w-10 h-10 rounded-full flex items-center justify-center text-gray-800 dark:text-white shadow active:scale-90 transition-all z-10">←</button>
 
@@ -251,7 +251,7 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
               <div className="flex flex-col items-center gap-3">
                  <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                     <div className="w-32 h-32 rounded-2xl bg-gray-100 dark:bg-slate-800 border-2 border-dashed border-gray-200 dark:border-slate-700 overflow-hidden flex items-center justify-center">
-                      <img src={editProd.image} alt="preview" className="w-full h-full object-cover" />
+                      <img src={editProd.image} alt="preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     </div>
                     <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 rounded-2xl flex items-center justify-center transition-opacity"><span className="text-white text-[10px] font-black uppercase tracking-widest">{lang === 'bn' ? 'ছবি পরিবর্তন' : 'Change Image'}</span></div>
                  </div>

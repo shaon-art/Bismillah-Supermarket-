@@ -138,7 +138,7 @@ const UserManagementScreen: React.FC<UserManagementScreenProps> = ({ onBack, lan
             <div key={user.id} className="bg-white dark:bg-slate-900 p-5 rounded-[28px] border border-slate-100 dark:border-slate-800 shadow-sm transition-all group relative overflow-hidden">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-2xl shadow-inner shrink-0 relative overflow-hidden">
-                  {user.avatar ? <img src={user.avatar} className="w-full h-full object-cover" /> : '👤'}
+                  {user.avatar ? <img src={user.avatar} className="w-full h-full object-cover" referrerPolicy="no-referrer" /> : '👤'}
                   {user.isAdmin && (
                     <div className="absolute top-0 right-0 w-4 h-4 bg-orange-500 border-2 border-white dark:border-slate-900 rounded-bl-lg"></div>
                   )}

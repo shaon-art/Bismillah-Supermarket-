@@ -101,21 +101,33 @@ export const TRANSLATIONS = {
 };
 
 export const CATEGORIES: Category[] = [
-  { id: 'cat_grocery', name: 'মুদি ও রান্না', icon: '🍚', color: 'bg-amber-100' },
-  { id: 'cat_skin', name: 'স্কিন কেয়ার', icon: '✨', color: 'bg-pink-100' },
-  { id: 'cat_baby', name: 'শিশুর যত্ন', icon: '👶', color: 'bg-blue-100' },
-  { id: 'cat_health', name: 'স্বাস্থ্য সুরক্ষা', icon: '💊', color: 'bg-red-100' },
-  { id: 'cat_food', name: 'স্ন্যাকস', icon: '🍪', color: 'bg-orange-100' },
-  { id: 'cat_home', name: 'ঘরকন্না', icon: '🧹', color: 'bg-teal-100' },
-  { id: 'cat_beverage', name: 'পানীয়', icon: '🥤', color: 'bg-purple-100' },
-  { id: 'cat_fresh', name: 'মাছ-মাংস', icon: '🍗', color: 'bg-rose-100' },
-  { id: 'cat_veg', name: 'ফল ও সবজি', icon: '🥦', color: 'bg-green-100' },
+  { id: 'cat_grocery', name: 'Grocery & Cooking', icon: '🍚', color: 'bg-amber-100' },
+  { id: 'cat_fresh', name: 'Meat & Fish', icon: '🍗', color: 'bg-rose-100' },
+  { id: 'cat_veg', name: 'Fruits & Vegetables', icon: '🥦', color: 'bg-green-100' },
+  { id: 'cat_beverage', name: 'Beverages', icon: '🥤', color: 'bg-purple-100' },
+  { id: 'cat_food', name: 'Snacks & Dairy', icon: '🍪', color: 'bg-orange-100' },
+  { id: 'cat_baby', name: 'Baby Care', icon: '👶', color: 'bg-blue-100' },
+  { id: 'cat_skin', name: 'Personal Care', icon: '✨', color: 'bg-pink-100' },
+  { id: 'cat_home', name: 'Home & Cleaning', icon: '🧹', color: 'bg-teal-100' },
+  { id: 'cat_health', name: 'Health & Hygiene', icon: '🏥', color: 'bg-red-100' },
+  { id: 'cat_office', name: 'Stationery & Office', icon: '✏️', color: 'bg-gray-100' },
+  { id: 'cat_frozen', name: 'Frozen Food', icon: '❄️', color: 'bg-cyan-100' },
 ];
 
 // Helper to create product data
-const createProduct = (id: string, name: string, price: number, cat: string, unit: string, img: string, desc: string, oldPrice?: number): Product => ({
-  id, name, price, category: cat, unit, image: img, description: desc, stock: Math.floor(Math.random() * 100) + 5, isActive: true, oldPrice
-});
+const createProduct = (id: string, name: string, price: number, cat: string, unit: string, img: string, desc: string, oldPrice?: number): Product => {
+  const discountPercentage = oldPrice && oldPrice > price 
+    ? Math.round(((oldPrice - price) / oldPrice) * 100) 
+    : 0;
+    
+  return {
+    id, name, price, category: cat, unit, image: img, description: desc, 
+    stock: Math.floor(Math.random() * 100) + 10, 
+    isActive: true, 
+    oldPrice,
+    discountPercentage: discountPercentage > 0 ? discountPercentage : undefined
+  };
+};
 
 export const DUMMY_PRODUCTS: Product[] = [
   // ==================== GROCERY & COOKING (cat_grocery) ====================
@@ -162,6 +174,11 @@ export const DUMMY_PRODUCTS: Product[] = [
   createProduct('gr_32', 'ফ্রেশ ময়দা', 75, 'cat_grocery', '২ কেজি', 'https://images.unsplash.com/photo-1627485937980-221c88ac04f9?w=400', 'সাদা মিহি ময়দা।'),
   createProduct('gr_33', 'বসুন্ধরা সুজি', 45, 'cat_grocery', '৫০০ গ্রাম', 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400', 'হালুয়া বা নাস্তার জন্য।'),
   createProduct('gr_34', 'ইস্পাহানি চালের গুঁড়া', 80, 'cat_grocery', '৫০০ গ্রাম', 'https://images.unsplash.com/photo-1627485937980-221c88ac04f9?w=400', 'পিঠা তৈরির জন্য।'),
+  createProduct('gr_41', 'বাঘাবাড়ী ঘি', 450, 'cat_grocery', '২০০ গ্রাম', 'https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?w=400', 'খাঁটি গাওয়া ঘি।'),
+  createProduct('gr_42', 'এপি মধু', 320, 'cat_grocery', '২৫০ গ্রাম', 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400', 'খাঁটি মধু।'),
+  createProduct('gr_43', 'কাঠবাদাম', 250, 'cat_grocery', '২০০ গ্রাম', 'https://images.unsplash.com/photo-1508061253366-f7da158b6d96?w=400', 'প্রিমিয়াম কোয়ালিটি।'),
+  createProduct('gr_44', 'কিশমিশ', 120, 'cat_grocery', '১০০ গ্রাম', 'https://images.unsplash.com/photo-1599599810694-b5b37304c041?w=400', 'মিষ্টি ও বড়।'),
+  createProduct('gr_45', 'কাজুবাদাম', 350, 'cat_grocery', '২০০ গ্রাম', 'https://images.unsplash.com/photo-1508061253366-f7da158b6d96?w=400', 'রোস্টেড।'),
 
   // Dairy
   createProduct('gr_35', 'ডানো গুঁড়া দুধ', 860, 'cat_grocery', '১ কেজি', 'https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400', 'ফুল ক্রিম মিল্ক পাউডার।'),
@@ -330,6 +347,21 @@ export const DUMMY_PRODUCTS: Product[] = [
   createProduct('vg_14', 'আঙ্গুর (কালো)', 380, 'cat_veg', '১ কেজি', 'https://images.unsplash.com/photo-1596363805842-880407f3521d?w=400', 'বীজহীন।'),
   createProduct('vg_15', 'ডালিম', 350, 'cat_veg', '১ কেজি', 'https://images.unsplash.com/photo-1615485925763-867862f8021a?w=400', 'লাল দানা।'),
   createProduct('vg_16', 'নাশপাতি', 260, 'cat_veg', '১ কেজি', 'https://images.unsplash.com/photo-1615485925763-867862f8021a?w=400', 'চাইনিজ।'),
+
+  // ==================== STATIONERY & OFFICE (cat_office) ====================
+  createProduct('of_1', 'ম্যাটাডোর হাই-স্কুল কলম', 5, 'cat_office', '১ পিস', 'https://images.unsplash.com/photo-1585336261022-69c66d167f4c?w=400', 'মসৃণ লেখা।'),
+  createProduct('of_2', 'ম্যাটাডোর আই-টিন কলম', 10, 'cat_office', '১ পিস', 'https://images.unsplash.com/photo-1585336261022-69c66d167f4c?w=400', 'জেল পেন।'),
+  createProduct('of_3', 'এ ফোর পেপার (ডাবল এ)', 450, 'cat_office', '১ রিম', 'https://images.unsplash.com/photo-1586075010633-2470acfd856b?w=400', '৮০ জিএসএম।'),
+  createProduct('of_4', 'খাতা (বসুন্ধরা)', 45, 'cat_office', '১ পিস', 'https://images.unsplash.com/photo-1586075010633-2470acfd856b?w=400', '১২০ পেজ।'),
+  createProduct('of_5', 'পেন্সিল (ফ্যাবার ক্যাসেল)', 15, 'cat_office', '১ পিস', 'https://images.unsplash.com/photo-1585336261022-69c66d167f4c?w=400', 'এইচবি পেন্সিল।'),
+  createProduct('of_6', 'গ্লু স্টিক (ফেভিকল)', 30, 'cat_office', '১ পিস', 'https://images.unsplash.com/photo-1586075010633-2470acfd856b?w=400', 'শক্তিশালী আঠা।'),
+  createProduct('of_7', 'ক্যালকুলেটর (ক্যাসিও)', 850, 'cat_office', '১ পিস', 'https://images.unsplash.com/photo-1586075010633-2470acfd856b?w=400', 'সায়েন্টিফিক।'),
+
+  // ==================== FROZEN FOOD (cat_frozen) ====================
+  createProduct('fz_1', 'গোল্ডেন হারভেস্ট পরোটা', 180, 'cat_frozen', '১০ পিস', 'https://images.unsplash.com/photo-1612929633738-8fe44f7ec841?w=400', 'ফ্রোজেন পরোটা।'),
+  createProduct('fz_2', 'সিপি চিকেন নাগেটস', 350, 'cat_frozen', '৫০০ গ্রাম', 'https://images.unsplash.com/photo-1562967914-608f82629710?w=400', 'ক্রিসপি নাগেটস।'),
+  createProduct('fz_3', 'কাজী ফার্মস চিকেন সসেজ', 220, 'cat_frozen', '৩৪০ গ্রাম', 'https://images.unsplash.com/photo-1585325701166-381996df73ec?w=400', 'স্মোকি সসেজ।'),
+  createProduct('fz_4', 'ফ্রেঞ্চ ফ্রাই', 150, 'cat_frozen', '৫০০ গ্রাম', 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=400', 'রেডি টু ফ্রাই।'),
 ];
 
 export const DUMMY_ORDERS: Order[] = [
