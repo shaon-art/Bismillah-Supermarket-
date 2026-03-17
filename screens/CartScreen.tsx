@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { TRANSLATIONS } from '../constants';
 import { CartItem, PaymentMethod, Address } from '../types';
 
@@ -14,7 +14,10 @@ interface CartScreenProps {
   isStoreOpen: boolean;
   deliveryCharge: number;
   supportPhone: string;
+  coupons: Coupon[];
 }
+
+import { Coupon } from '../types';
 
 const CartScreen: React.FC<CartScreenProps> = ({ 
   cart, 
@@ -27,7 +30,8 @@ const CartScreen: React.FC<CartScreenProps> = ({
   lang,
   isStoreOpen,
   deliveryCharge,
-  supportPhone
+  supportPhone,
+  coupons
 }) => {
   const [isCheckoutView, setIsCheckoutView] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
@@ -35,6 +39,11 @@ const CartScreen: React.FC<CartScreenProps> = ({
   const [paymentPhone, setPaymentPhone] = useState('');
   const [trxId, setTrxId] = useState('');
   const [showCopyTooltip, setShowCopyTooltip] = useState(false);
+  
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+
   const t = TRANSLATIONS[lang];
   
   const BKASH_NUMBER = '01978501415';
@@ -44,6 +53,36 @@ const CartScreen: React.FC<CartScreenProps> = ({
   const [selectedAddrId, setSelectedAddrId] = useState(addresses.find(a => a.isDefault)?.id || addresses[0]?.id || '');
 
   const total = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  
+  const discountAmount = useMemo(() => {
+    if (!appliedCoupon) return 0;
+    if (appliedCoupon.discountType === 'PERCENTAGE') {
+      return Math.floor((total * appliedCoupon.discountValue) / 100);
+    } else {
+      return appliedCoupon.discountValue;
+    }
+  }, [appliedCoupon, total]);
+
+  const finalTotal = total - discountAmount + deliveryCharge;
+
+  const handleApplyCoupon = () => {
+    setCouponError(null);
+    const coupon = coupons.find(c => c.code.toUpperCase() === couponCode.toUpperCase() && c.isActive);
+    
+    if (!coupon) {
+      setCouponError(lang === 'bn' ? 'ভুল কুপন কোড!' : 'Invalid coupon code!');
+      return;
+    }
+
+    if (total < (coupon.minOrderAmount || 0)) {
+      setCouponError(lang === 'bn' ? `ন্যূনতম ৳${coupon.minOrderAmount || 0} অর্ডার প্রয়োজন।` : `Min order ৳${coupon.minOrderAmount || 0} required.`);
+      return;
+    }
+
+    setAppliedCoupon(coupon);
+    setCouponCode('');
+  };
+
   const selectedAddress = addresses.find(a => a.id === selectedAddrId);
 
   const handleCheckout = () => {
@@ -58,13 +97,15 @@ const CartScreen: React.FC<CartScreenProps> = ({
     ).join('\n');
 
     const subTotal = total;
-    const totalAmount = total + deliveryCharge;
+    const totalAmount = finalTotal;
     const dateStr = new Date().toLocaleString(lang === 'bn' ? 'bn-BD' : 'en-US');
     
     // Format Payment Details
     const paymentDetailsInfo = selectedMethod === 'COD' 
       ? (lang === 'bn' ? 'ক্যাশ অন ডেলিভারি' : 'Cash On Delivery')
       : `${selectedMethod}\nPhone: ${paymentPhone}\nTrxID: ${trxId}`;
+
+    const couponInfo = appliedCoupon ? (lang === 'bn' ? `\n🎟️ কুপন: ${appliedCoupon.code} (-৳${discountAmount})` : `\n🎟️ Coupon: ${appliedCoupon.code} (-৳${discountAmount})`) : '';
 
     // Format message based on language
     const message = lang === 'bn' 
@@ -81,7 +122,7 @@ const CartScreen: React.FC<CartScreenProps> = ({
 ${itemsList}
 
 ----------------------------
-💰 পণ্যের দাম: ৳${subTotal}
+💰 পণ্যের দাম: ৳${subTotal}${couponInfo}
 🚚 ডেলিভারি চার্জ: ৳${deliveryCharge}
 💵 *সর্বমোট বিল: ৳${totalAmount}*
 ----------------------------
@@ -314,9 +355,15 @@ ${paymentDetailsInfo}
 
         {/* Fixed Bottom Summary Area */}
         <div className="p-5 bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] z-40 transition-colors pb-24">
+           {appliedCoupon && (
+             <div className="flex justify-between items-center mb-2 px-2 text-[10px] font-black text-green-600 uppercase tracking-widest">
+               <span>{lang === 'bn' ? 'কুপন ডিসকাউন্ট' : 'Coupon Discount'} ({appliedCoupon.code})</span>
+               <span>-৳{discountAmount}</span>
+             </div>
+           )}
            <div className="flex justify-between items-center mb-4 px-2">
             <span className="text-gray-500 text-sm font-bold">{lang === 'bn' ? 'মোট দেয় পরিমাণ' : 'Net Total'}</span>
-            <span className="text-green-700 dark:text-green-400 font-black text-xl">৳{total + deliveryCharge}</span>
+            <span className="text-green-700 dark:text-green-400 font-black text-xl">৳{finalTotal}</span>
           </div>
           <button 
             onClick={handleCheckout}
@@ -400,6 +447,50 @@ ${paymentDetailsInfo}
             </div>
           ))}
         </div>
+
+        {/* Coupon Input */}
+        <div className="mt-8 p-5 bg-white dark:bg-slate-900 rounded-3xl border border-gray-100 dark:border-slate-800">
+          <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">কুপন কোড ব্যবহার করুন</h4>
+          {appliedCoupon ? (
+            <div className="flex items-center justify-between bg-green-50 dark:bg-green-900/20 p-4 rounded-2xl border border-green-100 dark:border-green-900/30">
+              <div className="flex items-center gap-3">
+                <span className="text-xl">🎟️</span>
+                <div>
+                  <p className="text-xs font-black text-green-700 dark:text-green-400 uppercase tracking-widest">{appliedCoupon.code}</p>
+                  <p className="text-[9px] font-bold text-green-600/60 dark:text-green-400/60">{appliedCoupon.discount}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setAppliedCoupon(null)}
+                className="text-[10px] font-black text-red-500 bg-red-50 dark:bg-red-900/20 px-3 py-1.5 rounded-lg"
+              >
+                {lang === 'bn' ? 'মুছুন' : 'Remove'}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={couponCode}
+                  onChange={e => setCouponCode(e.target.value.toUpperCase())}
+                  placeholder={lang === 'bn' ? 'কোড লিখুন' : 'Enter Code'}
+                  className="flex-1 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-600 dark:text-white"
+                />
+                <button 
+                  onClick={handleApplyCoupon}
+                  disabled={!couponCode}
+                  className={`px-6 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${
+                    !couponCode ? 'bg-gray-100 text-gray-400' : 'bg-slate-900 text-white active:scale-95'
+                  }`}
+                >
+                  {lang === 'bn' ? 'প্রয়োগ' : 'Apply'}
+                </button>
+              </div>
+              {couponError && <p className="text-[9px] font-bold text-red-500 ml-2 animate-shake">{couponError}</p>}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Fixed Bottom Summary Area */}
@@ -409,13 +500,19 @@ ${paymentDetailsInfo}
             <span className="text-gray-400 dark:text-gray-500">{lang === 'bn' ? 'পণ্য মূল্য' : 'Subtotal'}</span>
             <span className="text-gray-900 dark:text-white">৳{total}</span>
           </div>
+          {appliedCoupon && (
+            <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-green-600">
+              <span>{lang === 'bn' ? 'ডিসকাউন্ট' : 'Discount'}</span>
+              <span>-৳{discountAmount}</span>
+            </div>
+          )}
           <div className="flex justify-between text-xs font-bold uppercase tracking-widest">
             <span className="text-gray-400 dark:text-gray-500">{lang === 'bn' ? 'ডেলিভারি চার্জ' : 'Delivery'}</span>
             <span className="text-gray-900 dark:text-white">৳{deliveryCharge}</span>
           </div>
           <div className="flex justify-between items-center pt-3 mt-1 border-t border-gray-50 dark:border-slate-800">
             <span className="font-black text-gray-900 dark:text-white uppercase tracking-widest text-xs">{t.TOTAL}</span>
-            <span className="font-black text-green-700 dark:text-green-400 text-xl">৳{total + deliveryCharge}</span>
+            <span className="font-black text-green-700 dark:text-green-400 text-xl">৳{finalTotal}</span>
           </div>
         </div>
         <button 

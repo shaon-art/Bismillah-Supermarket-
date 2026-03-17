@@ -1,52 +1,18 @@
 
 import React, { useState } from 'react';
+import { Coupon, SpecialOffer } from '../types';
 
 interface CouponScreenProps {
   onBack: () => void;
+  coupons: Coupon[];
+  specialOffers: SpecialOffer[];
 }
 
-interface Coupon {
-  id: string;
-  code: string;
-  discount: string;
-  description: string;
-  expiry: string;
-  icon: string;
-  color: string;
-}
-
-const DUMMY_COUPONS: Coupon[] = [
-  {
-    id: 'c1',
-    code: 'BISMILLAH10',
-    discount: '১০% ছাড়',
-    description: '৫০০ টাকার বেশি অর্ডারে সব পণ্যে ১০% ছাড় পাবেন।',
-    expiry: '৩০ জুন, ২০২৪',
-    icon: '🎉',
-    color: 'bg-emerald-500'
-  },
-  {
-    id: 'c2',
-    code: 'FREEDEL',
-    discount: 'ফ্রি ডেলিভারি',
-    description: '১০০০ টাকার বেশি অর্ডারে কোনো ডেলিভারি চার্জ নেই।',
-    expiry: '১৫ জুন, ২০২৪',
-    icon: '🚚',
-    color: 'bg-blue-500'
-  },
-  {
-    id: 'c3',
-    code: 'VEGGIE20',
-    discount: '২০% ছাড়',
-    description: 'শুধু মাত্র সবজির ওপর ২০% ছাড় উপভোগ করুন।',
-    expiry: '১০ জুন, ২০২৪',
-    icon: '🥦',
-    color: 'bg-orange-500'
-  }
-];
-
-const CouponScreen: React.FC<CouponScreenProps> = ({ onBack }) => {
+const CouponScreen: React.FC<CouponScreenProps> = ({ onBack, coupons, specialOffers }) => {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  const activeCoupons = coupons.filter(c => c.isActive);
+  const activeOffers = specialOffers.filter(o => o.isActive);
 
   const handleCopy = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -81,11 +47,11 @@ const CouponScreen: React.FC<CouponScreenProps> = ({ onBack }) => {
         <section className="space-y-4">
           <div className="flex items-center justify-between px-1">
             <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">চলমান কুপনসমূহ</h4>
-            <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">{DUMMY_COUPONS.length} টি সচল</span>
+            <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">{activeCoupons.length} টি সচল</span>
           </div>
 
           <div className="space-y-4">
-            {DUMMY_COUPONS.map((coupon) => (
+            {activeCoupons.length > 0 ? activeCoupons.map((coupon) => (
               <div key={coupon.id} className="bg-white rounded-3xl p-4 shadow-sm border border-gray-100 flex gap-4 group relative overflow-hidden">
                 {/* Left Colored Bar */}
                 <div className={`w-1.5 h-full absolute left-0 top-0 bottom-0 ${coupon.color}`}></div>
@@ -123,7 +89,11 @@ const CouponScreen: React.FC<CouponScreenProps> = ({ onBack }) => {
                   </div>
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="p-10 text-center bg-white rounded-3xl border border-dashed border-gray-200">
+                <p className="text-xs font-bold text-gray-400">বর্তমানে কোনো কুপন নেই</p>
+              </div>
+            )}
           </div>
         </section>
 
@@ -132,23 +102,20 @@ const CouponScreen: React.FC<CouponScreenProps> = ({ onBack }) => {
           <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">আজকের স্পেশাল অফার</h4>
           
           <div className="grid grid-cols-1 gap-4">
-             <div className="bg-orange-50 rounded-3xl p-5 border border-orange-100 flex items-center justify-between shadow-sm shadow-orange-50">
+            {activeOffers.length > 0 ? activeOffers.map(offer => (
+              <div key={offer.id} className={`${offer.color.replace('bg-', 'bg-opacity-10 bg-')} rounded-3xl p-5 border ${offer.color.replace('bg-', 'border-')} flex items-center justify-between shadow-sm`}>
                 <div className="space-y-1">
-                  <h5 className="text-sm font-black text-orange-900">Buy 1 Get 1 Free!</h5>
-                  <p className="text-[10px] text-orange-700 font-bold opacity-80">ফ্রেশ আপেল কিনলেই পাচ্ছেন আরও একটি ফ্রি।</p>
-                  <button className="mt-2 text-[9px] font-black bg-white text-orange-600 px-3 py-1 rounded-full border border-orange-200">অফারটি নিন</button>
+                  <h5 className={`text-sm font-black ${offer.color.replace('bg-', 'text-').replace('-500', '-900')}`}>{offer.title}</h5>
+                  <p className={`text-[10px] ${offer.color.replace('bg-', 'text-').replace('-500', '-700')} font-bold opacity-80`}>{offer.description}</p>
+                  <button className={`mt-2 text-[9px] font-black bg-white ${offer.color.replace('bg-', 'text-')} px-3 py-1 rounded-full border border-gray-200`}>{offer.actionText}</button>
                 </div>
-                <div className="text-4xl">🍎</div>
-             </div>
-
-             <div className="bg-blue-50 rounded-3xl p-5 border border-blue-100 flex items-center justify-between shadow-sm shadow-blue-50">
-                <div className="space-y-1">
-                  <h5 className="text-sm font-black text-blue-900">৳১০০ ক্যাশব্যাক!</h5>
-                  <p className="text-[10px] text-blue-700 font-bold opacity-80">বিকাশে পেমেন্ট করলেই পাচ্ছেন নিশ্চিত ক্যাশব্যাক।</p>
-                  <button className="mt-2 text-[9px] font-black bg-white text-blue-600 px-3 py-1 rounded-full border border-blue-200">বিস্তারিত</button>
-                </div>
-                <div className="text-4xl">📱</div>
-             </div>
+                <div className="text-4xl">{offer.icon}</div>
+              </div>
+            )) : (
+              <div className="p-10 text-center bg-white rounded-3xl border border-dashed border-gray-200">
+                <p className="text-xs font-bold text-gray-400">বর্তমানে কোনো স্পেশাল অফার নেই</p>
+              </div>
+            )}
           </div>
         </section>
 

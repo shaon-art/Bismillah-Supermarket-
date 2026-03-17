@@ -83,5 +83,17 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // Coupons collection
+    match /coupons/{couponId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Special Offers collection
+    match /specialOffers/{offerId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }

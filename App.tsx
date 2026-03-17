@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { TRANSLATIONS, COLORS, DUMMY_PRODUCTS, DUMMY_ORDERS, CATEGORIES } from './constants';
-import { Screen, CartItem, Product, Order, Category, PaymentMethod, Address, OrderStatus, User, SystemSettings, ChatMessage } from './types';
+import { Screen, CartItem, Product, Order, Category, PaymentMethod, Address, OrderStatus, User, SystemSettings, ChatMessage, Coupon, SpecialOffer } from './types';
 import HomeScreen from './screens/HomeScreen';
 import CategoryScreen from './screens/CategoryScreen';
 import CartScreen from './screens/CartScreen';
@@ -18,6 +18,7 @@ import ProductManagementScreen from './screens/ProductManagementScreen';
 import UserManagementScreen from './screens/UserManagementScreen';
 import AdminControlScreen from './screens/AdminControlScreen';
 import CategoryManagementScreen from './screens/CategoryManagementScreen';
+import CouponManagementScreen from './screens/CouponManagementScreen';
 import MessagingScreen from './screens/MessagingScreen';
 import BazarCalculatorScreen from './screens/BazarCalculatorScreen';
 import LegalScreen from './screens/LegalScreen';
@@ -112,6 +113,8 @@ const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>(() => storage.getProducts());
   const [categories, setCategories] = useState<Category[]>(() => storage.getCategories());
   const [orders, setOrders] = useState<Order[]>(() => storage.getOrders());
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [specialOffers, setSpecialOffers] = useState<SpecialOffer[]>([]);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [systemSettings, setSystemSettings] = useState<SystemSettings>(() => storage.getSettings());
 
@@ -215,12 +218,26 @@ const App: React.FC = () => {
       }, (err) => handleFirestoreError(err, OperationType.LIST, 'orders'));
     }
 
+    // 6. Listen for Coupons
+    const unsubCoupons = onSnapshot(collection(db, 'coupons'), (snapshot) => {
+      const list = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Coupon));
+      setCoupons(list);
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'coupons'));
+
+    // 7. Listen for Special Offers
+    const unsubSpecialOffers = onSnapshot(collection(db, 'specialOffers'), (snapshot) => {
+      const list = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as SpecialOffer));
+      setSpecialOffers(list);
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'specialOffers'));
+
     return () => {
       unsubAuth();
       unsubProducts();
       unsubCategories();
       unsubSettings();
       unsubOrders();
+      unsubCoupons();
+      unsubSpecialOffers();
     };
   }, [currentUser]);
 
@@ -286,6 +303,58 @@ const App: React.FC = () => {
       await deleteDoc(doc(db, 'categories', id));
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, `categories/${id}`);
+    }
+  };
+
+  const handleAddCoupon = async (coupon: Coupon) => {
+    try {
+      const clean = JSON.parse(JSON.stringify(coupon));
+      await setDoc(doc(db, 'coupons', coupon.id), clean);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, `coupons/${coupon.id}`);
+    }
+  };
+
+  const handleUpdateCoupon = async (coupon: Coupon) => {
+    try {
+      const clean = JSON.parse(JSON.stringify(coupon));
+      await updateDoc(doc(db, 'coupons', coupon.id), clean);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `coupons/${coupon.id}`);
+    }
+  };
+
+  const handleDeleteCoupon = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'coupons', id));
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `coupons/${id}`);
+    }
+  };
+
+  const handleAddSpecialOffer = async (offer: SpecialOffer) => {
+    try {
+      const clean = JSON.parse(JSON.stringify(offer));
+      await setDoc(doc(db, 'specialOffers', offer.id), clean);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, `specialOffers/${offer.id}`);
+    }
+  };
+
+  const handleUpdateSpecialOffer = async (offer: SpecialOffer) => {
+    try {
+      const clean = JSON.parse(JSON.stringify(offer));
+      await updateDoc(doc(db, 'specialOffers', offer.id), clean);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `specialOffers/${offer.id}`);
+    }
+  };
+
+  const handleDeleteSpecialOffer = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'specialOffers', id));
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `specialOffers/${id}`);
     }
   };
   
@@ -484,7 +553,7 @@ const App: React.FC = () => {
       case 'AUTH': return <AuthScreen onLogin={handleLogin} settings={systemSettings} />;
       case 'HOME': return <HomeScreen products={products} categories={categories} recentlyViewed={products.filter(p => recentlyViewedIds.includes(p.id))} onProductClick={handleProductClick} onAddToCart={addToCart} onNavigate={setCurrentScreen} onCategoryClick={handleCategoryClick} lang={language} settings={systemSettings} />;
       case 'CATEGORIES': return <CategoryScreen products={products} categories={categories} onProductClick={handleProductClick} onAddToCart={addToCart} settings={systemSettings} initialCategoryId={targetCategory || undefined} />;
-      case 'CART': return <CartScreen cart={cart} addresses={addresses} onUpdateQty={(id, d) => setCart(p => p.map(i => i.id === id ? {...i, quantity: Math.max(1, i.quantity+d)} : i))} onRemove={id => setCart(p => p.filter(i => i.id !== id))} onClearCart={() => setCart([])} onPlaceOrder={handlePlaceOrder} onManageAddresses={() => setCurrentScreen('ADDRESS_LIST')} lang={language} isStoreOpen={systemSettings.isStoreOpen} deliveryCharge={systemSettings.deliveryCharge} supportPhone={systemSettings.supportPhone} />;
+      case 'CART': return <CartScreen cart={cart} addresses={addresses} coupons={coupons} onUpdateQty={(id, d) => setCart(p => p.map(i => i.id === id ? {...i, quantity: Math.max(1, i.quantity+d)} : i))} onRemove={id => setCart(p => p.filter(i => i.id !== id))} onClearCart={() => setCart([])} onPlaceOrder={handlePlaceOrder} onManageAddresses={() => setCurrentScreen('ADDRESS_LIST')} lang={language} isStoreOpen={systemSettings.isStoreOpen} deliveryCharge={systemSettings.deliveryCharge} supportPhone={systemSettings.supportPhone} />;
       case 'PROFILE': return <ProfileScreen currentUser={currentUser!} isAdmin={isActuallyAdmin} settings={systemSettings} onLogout={handleLogout} onUpdateUser={handleUpdateUser} onNavigate={setCurrentScreen} onShowLegal={(type) => { setLegalType(type); setCurrentScreen('LEGAL'); }} lang={language} />;
       case 'MESSAGES': return <MessagingScreen messages={messages} onSendMessage={handleSendMessage} isTyping={isTyping} onBack={() => setCurrentScreen('HOME')} lang={language} settings={systemSettings} />;
       case 'ORDERS': return <OrderListScreen orders={orders} isAdmin={isActuallyAdmin} onBack={() => setCurrentScreen('PROFILE')} onCancelOrder={id => handleUpdateOrderStatus(id, 'CANCELED')} onAcceptOrder={id => handleUpdateOrderStatus(id, 'ACCEPTED')} onTrackOrder={o => {setSelectedOrderForTracking(o); setCurrentScreen('TRACKING');}} lang={language} deliveryCharge={systemSettings.deliveryCharge} />;
@@ -497,7 +566,8 @@ const App: React.FC = () => {
       case 'USER_MANAGEMENT': return <UserManagementScreen onBack={() => setCurrentScreen('ADMIN_CONTROL')} lang={language} />;
       case 'ADDRESS_LIST': return <AddressListScreen addresses={addresses} onBack={() => setCurrentScreen('PROFILE')} onAddAddress={a=>setAddresses(p=>[...p,a])} onUpdateAddress={a=>setAddresses(p=>p.map(i=>i.id===a.id?a:i))} onDeleteAddress={id=>setAddresses(p=>p.filter(i=>i.id !== id))} onSetDefault={id=>setAddresses(p=>p.map(i=>({...i,isDefault:i.id===id})))} />;
       case 'BAZAR_CALCULATOR': return <BazarCalculatorScreen onBack={() => setCurrentScreen('PROFILE')} lang={language} />;
-      case 'COUPONS': return <CouponScreen onBack={() => setCurrentScreen('HOME')} />;
+      case 'COUPONS': return <CouponScreen coupons={coupons} specialOffers={specialOffers} onBack={() => setCurrentScreen('HOME')} />;
+      case 'COUPON_MANAGEMENT': return <CouponManagementScreen coupons={coupons} specialOffers={specialOffers} onBack={() => setCurrentScreen('ADMIN_CONTROL')} onAddCoupon={handleAddCoupon} onUpdateCoupon={handleUpdateCoupon} onDeleteCoupon={handleDeleteCoupon} onAddSpecialOffer={handleAddSpecialOffer} onUpdateSpecialOffer={handleUpdateSpecialOffer} onDeleteSpecialOffer={handleDeleteSpecialOffer} lang={language} />;
       case 'LEGAL': return <LegalScreen type={legalType} onBack={() => setCurrentScreen('PROFILE')} lang={language} />;
       default: return <HomeScreen products={products} categories={categories} recentlyViewed={[]} onProductClick={handleProductClick} onAddToCart={addToCart} onNavigate={setCurrentScreen} onCategoryClick={handleCategoryClick} lang={language} settings={systemSettings} />;
     }

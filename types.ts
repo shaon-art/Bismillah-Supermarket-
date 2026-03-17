@@ -115,4 +115,29 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
-export type Screen = 'AUTH' | 'HOME' | 'CATEGORIES' | 'CART' | 'PROFILE' | 'GUIDE' | 'PRODUCT_DETAIL' | 'ORDERS' | 'TRACKING' | 'SETTINGS' | 'COUPONS' | 'ADDRESS_LIST' | 'MESSAGES' | 'PRODUCT_MANAGEMENT' | 'USER_MANAGEMENT' | 'ADMIN_CONTROL' | 'CATEGORY_MANAGEMENT' | 'BAZAR_CALCULATOR' | 'LEGAL';
+export interface Coupon {
+  id: string;
+  code: string;
+  discount: string;
+  description: string;
+  expiry: string;
+  icon: string;
+  color: string;
+  isActive: boolean;
+  minOrderAmount?: number;
+  discountType: 'PERCENTAGE' | 'FIXED';
+  discountValue: number;
+}
+
+export interface SpecialOffer {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  color: string;
+  isActive: boolean;
+  actionText: string;
+  actionLink?: string;
+}
+
+export type Screen = 'AUTH' | 'HOME' | 'CATEGORIES' | 'CART' | 'PROFILE' | 'GUIDE' | 'PRODUCT_DETAIL' | 'ORDERS' | 'TRACKING' | 'SETTINGS' | 'COUPONS' | 'ADDRESS_LIST' | 'MESSAGES' | 'PRODUCT_MANAGEMENT' | 'USER_MANAGEMENT' | 'ADMIN_CONTROL' | 'CATEGORY_MANAGEMENT' | 'BAZAR_CALCULATOR' | 'LEGAL' | 'COUPON_MANAGEMENT';

@@ -78,6 +78,41 @@
         "globalDiscountEnabled": { "type": "boolean" },
         "globalDiscountPercentage": { "type": "number" }
       }
+    },
+    "Coupon": {
+      "title": "Coupon",
+      "description": "A discount coupon",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "discount": { "type": "string" },
+        "description": { "type": "string" },
+        "expiry": { "type": "string" },
+        "icon": { "type": "string" },
+        "color": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "minOrderAmount": { "type": "number" },
+        "discountType": { "type": "string" },
+        "discountValue": { "type": "number" }
+      },
+      "required": ["id", "code", "discount", "isActive", "discountType", "discountValue"]
+    },
+    "SpecialOffer": {
+      "title": "SpecialOffer",
+      "description": "A special offer banner",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "icon": { "type": "string" },
+        "color": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "actionText": { "type": "string" },
+        "actionLink": { "type": "string" }
+      },
+      "required": ["id", "title", "description", "isActive", "actionText"]
     }
   },
   "firestore": {
@@ -100,6 +135,14 @@
     "/settings/global": {
       "schema": "SystemSettings",
       "description": "Global settings document"
+    },
+    "/coupons/{couponId}": {
+      "schema": "Coupon",
+      "description": "Collection of coupons"
+    },
+    "/specialOffers/{offerId}": {
+      "schema": "SpecialOffer",
+      "description": "Collection of special offers"
     }
   }
 }

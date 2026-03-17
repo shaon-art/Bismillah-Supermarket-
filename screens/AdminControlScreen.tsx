@@ -392,6 +392,12 @@ const AdminControlScreen: React.FC<AdminControlScreenProps> = ({
               onClick={() => onNavigate('CATEGORY_MANAGEMENT')} 
             />
             <ManagementTile 
+              icon="🎟️" 
+              title={lang === 'bn' ? 'কুপন ও অফার' : 'Coupons & Offers'} 
+              color="bg-orange-600" 
+              onClick={() => onNavigate('COUPON_MANAGEMENT')} 
+            />
+            <ManagementTile 
               icon="🌱" 
               title={lang === 'bn' ? 'ডামি পণ্য' : 'Seed Data'} 
               color="bg-purple-600" 
