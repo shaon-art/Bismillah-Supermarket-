@@ -7,6 +7,7 @@ interface HomeScreenProps {
   products: Product[];
   categories: Category[];
   recentlyViewed: Product[];
+  specialOffers: SpecialOffer[];
   onProductClick: (p: Product) => void;
   onAddToCart: (p: Product) => void;
   onNavigate: (screen: Screen) => void;
@@ -15,7 +16,9 @@ interface HomeScreenProps {
   settings: SystemSettings;
 }
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ products, categories, recentlyViewed, onProductClick, onAddToCart, onNavigate, onCategoryClick, lang, settings }) => {
+import { SpecialOffer } from '../types';
+
+const HomeScreen: React.FC<HomeScreenProps> = ({ products, categories, recentlyViewed, specialOffers, onProductClick, onAddToCart, onNavigate, onCategoryClick, lang, settings }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const t = TRANSLATIONS[lang];
 
@@ -118,6 +121,37 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ products, categories, recentlyV
                     </div>
                   );
                 })}
+              </div>
+            </section>
+          )}
+
+          {/* Super Saving Deals Section */}
+          {specialOffers.filter(o => o.isActive).length > 0 && (
+            <section className="px-5">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <span className="text-sm">🎁</span> {lang === 'bn' ? 'সুপার সেভিং ডিলস' : 'Super Saving Deals'}
+                </h3>
+                <button 
+                  onClick={() => onNavigate('COUPONS')}
+                  className="text-xs font-bold text-green-600"
+                >
+                  {lang === 'bn' ? 'সবগুলো' : 'See All'}
+                </button>
+              </div>
+              <div className="flex overflow-x-auto pb-2 gap-4 no-scrollbar">
+                {specialOffers.filter(o => o.isActive).map(offer => (
+                  <div 
+                    key={offer.id} 
+                    className={`${offer.color.replace('bg-', 'bg-opacity-10 bg-')} rounded-2xl p-4 border ${offer.color.replace('bg-', 'border-')} flex items-center gap-4 flex-shrink-0 w-64 shadow-sm`}
+                  >
+                    <div className="text-3xl">{offer.icon}</div>
+                    <div className="flex-1">
+                      <h5 className={`text-xs font-black ${offer.color.replace('bg-', 'text-').replace('-500', '-900')} line-clamp-1`}>{offer.title}</h5>
+                      <p className={`text-[9px] ${offer.color.replace('bg-', 'text-').replace('-500', '-700')} font-bold opacity-80 line-clamp-1`}>{offer.description}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </section>
           )}

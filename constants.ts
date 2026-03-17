@@ -388,3 +388,55 @@ export const DUMMY_ORDERS: Order[] = [
     userId: 'guest'
   }
 ];
+
+export const DUMMY_COUPONS: any[] = [
+  {
+    id: 'c1',
+    code: 'BISMILLAH10',
+    discount: '১০% ছাড়',
+    description: '৫০০ টাকার বেশি অর্ডারে সব পণ্যে ১০% ছাড় পাবেন।',
+    expiry: '৩০ জুন, ২০২৪',
+    icon: '🎉',
+    color: 'bg-emerald-500',
+    isActive: true,
+    discountType: 'PERCENTAGE',
+    discountValue: 10,
+    minOrderAmount: 500
+  },
+  {
+    id: 'c2',
+    code: 'FREEDEL',
+    discount: 'ফ্রি ডেলিভারি',
+    description: '১০০০ টাকার বেশি অর্ডারে কোনো ডেলিভারি চার্জ নেই।',
+    expiry: '১৫ জুন, ২০২৪',
+    icon: '🚚',
+    color: 'bg-blue-500',
+    isActive: true,
+    discountType: 'FIXED',
+    discountValue: 0,
+    minOrderAmount: 1000
+  }
+];
+
+export const DUMMY_SPECIAL_OFFERS: any[] = [
+  {
+    id: 'o1',
+    title: 'Buy 1 Get 1 Free!',
+    description: 'ফ্রেশ আপেল কিনলেই পাচ্ছেন আরও একটি ফ্রি।',
+    icon: '🍎',
+    color: 'bg-orange-500',
+    isActive: true,
+    actionText: 'অফারটি নিন',
+    actionLink: ''
+  },
+  {
+    id: 'o2',
+    title: '৳১০০ ক্যাশব্যাক!',
+    description: 'বিকাশে পেমেন্ট করলেই পাচ্ছেন নিশ্চিত ক্যাশব্যাক।',
+    icon: '📱',
+    color: 'bg-blue-500',
+    isActive: true,
+    actionText: 'বিস্তারিত',
+    actionLink: ''
+  }
+];

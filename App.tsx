@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { TRANSLATIONS, COLORS, DUMMY_PRODUCTS, DUMMY_ORDERS, CATEGORIES } from './constants';
+import { TRANSLATIONS, COLORS, DUMMY_PRODUCTS, DUMMY_ORDERS, CATEGORIES, DUMMY_COUPONS, DUMMY_SPECIAL_OFFERS } from './constants';
 import { Screen, CartItem, Product, Order, Category, PaymentMethod, Address, OrderStatus, User, SystemSettings, ChatMessage, Coupon, SpecialOffer } from './types';
 import HomeScreen from './screens/HomeScreen';
 import CategoryScreen from './screens/CategoryScreen';
@@ -529,6 +529,18 @@ const App: React.FC = () => {
         batch.set(catRef, sanitizedCat);
       }
 
+      for (const coupon of DUMMY_COUPONS) {
+        const couponRef = doc(db, 'coupons', coupon.id);
+        const sanitizedCoupon = JSON.parse(JSON.stringify(coupon));
+        batch.set(couponRef, sanitizedCoupon);
+      }
+
+      for (const offer of DUMMY_SPECIAL_OFFERS) {
+        const offerRef = doc(db, 'specialOffers', offer.id);
+        const sanitizedOffer = JSON.parse(JSON.stringify(offer));
+        batch.set(offerRef, sanitizedOffer);
+      }
+
       await batch.commit();
       setSeedMessage(language === 'bn' ? 'পণ্য সফলভাবে ইমপোর্ট হয়েছে!' : 'Products imported successfully!');
       setTimeout(() => setSeedMessage(null), 3000);
@@ -542,16 +554,16 @@ const App: React.FC = () => {
   };
 
   const renderScreen = () => {
-    const adminScreens: Screen[] = ['ADMIN_CONTROL', 'PRODUCT_MANAGEMENT', 'CATEGORY_MANAGEMENT', 'USER_MANAGEMENT'];
+    const adminScreens: Screen[] = ['ADMIN_CONTROL', 'PRODUCT_MANAGEMENT', 'CATEGORY_MANAGEMENT', 'USER_MANAGEMENT', 'COUPON_MANAGEMENT'];
     const isActuallyAdmin = !!(currentUser?.isAdmin || currentUser?.phone === 'admin' || currentUser?.email === 'tamimshaon@gmail.com');
     
     if (adminScreens.includes(currentScreen) && !isActuallyAdmin) {
-      return <HomeScreen products={products} categories={categories} recentlyViewed={products.filter(p => recentlyViewedIds.includes(p.id))} onProductClick={handleProductClick} onAddToCart={addToCart} onNavigate={setCurrentScreen} onCategoryClick={handleCategoryClick} lang={language} settings={systemSettings} />;
+      return <HomeScreen products={products} categories={categories} recentlyViewed={products.filter(p => recentlyViewedIds.includes(p.id))} specialOffers={specialOffers} onProductClick={handleProductClick} onAddToCart={addToCart} onNavigate={setCurrentScreen} onCategoryClick={handleCategoryClick} lang={language} settings={systemSettings} />;
     }
 
     switch (currentScreen) {
       case 'AUTH': return <AuthScreen onLogin={handleLogin} settings={systemSettings} />;
-      case 'HOME': return <HomeScreen products={products} categories={categories} recentlyViewed={products.filter(p => recentlyViewedIds.includes(p.id))} onProductClick={handleProductClick} onAddToCart={addToCart} onNavigate={setCurrentScreen} onCategoryClick={handleCategoryClick} lang={language} settings={systemSettings} />;
+      case 'HOME': return <HomeScreen products={products} categories={categories} recentlyViewed={products.filter(p => recentlyViewedIds.includes(p.id))} specialOffers={specialOffers} onProductClick={handleProductClick} onAddToCart={addToCart} onNavigate={setCurrentScreen} onCategoryClick={handleCategoryClick} lang={language} settings={systemSettings} />;
       case 'CATEGORIES': return <CategoryScreen products={products} categories={categories} onProductClick={handleProductClick} onAddToCart={addToCart} settings={systemSettings} initialCategoryId={targetCategory || undefined} />;
       case 'CART': return <CartScreen cart={cart} addresses={addresses} coupons={coupons} onUpdateQty={(id, d) => setCart(p => p.map(i => i.id === id ? {...i, quantity: Math.max(1, i.quantity+d)} : i))} onRemove={id => setCart(p => p.filter(i => i.id !== id))} onClearCart={() => setCart([])} onPlaceOrder={handlePlaceOrder} onManageAddresses={() => setCurrentScreen('ADDRESS_LIST')} lang={language} isStoreOpen={systemSettings.isStoreOpen} deliveryCharge={systemSettings.deliveryCharge} supportPhone={systemSettings.supportPhone} />;
       case 'PROFILE': return <ProfileScreen currentUser={currentUser!} isAdmin={isActuallyAdmin} settings={systemSettings} onLogout={handleLogout} onUpdateUser={handleUpdateUser} onNavigate={setCurrentScreen} onShowLegal={(type) => { setLegalType(type); setCurrentScreen('LEGAL'); }} lang={language} />;
@@ -566,10 +578,10 @@ const App: React.FC = () => {
       case 'USER_MANAGEMENT': return <UserManagementScreen onBack={() => setCurrentScreen('ADMIN_CONTROL')} lang={language} />;
       case 'ADDRESS_LIST': return <AddressListScreen addresses={addresses} onBack={() => setCurrentScreen('PROFILE')} onAddAddress={a=>setAddresses(p=>[...p,a])} onUpdateAddress={a=>setAddresses(p=>p.map(i=>i.id===a.id?a:i))} onDeleteAddress={id=>setAddresses(p=>p.filter(i=>i.id !== id))} onSetDefault={id=>setAddresses(p=>p.map(i=>({...i,isDefault:i.id===id})))} />;
       case 'BAZAR_CALCULATOR': return <BazarCalculatorScreen onBack={() => setCurrentScreen('PROFILE')} lang={language} />;
-      case 'COUPONS': return <CouponScreen coupons={coupons} specialOffers={specialOffers} onBack={() => setCurrentScreen('HOME')} />;
+      case 'COUPONS': return <CouponScreen coupons={coupons} specialOffers={specialOffers} onBack={() => setCurrentScreen('HOME')} lang={language} />;
       case 'COUPON_MANAGEMENT': return <CouponManagementScreen coupons={coupons} specialOffers={specialOffers} onBack={() => setCurrentScreen('ADMIN_CONTROL')} onAddCoupon={handleAddCoupon} onUpdateCoupon={handleUpdateCoupon} onDeleteCoupon={handleDeleteCoupon} onAddSpecialOffer={handleAddSpecialOffer} onUpdateSpecialOffer={handleUpdateSpecialOffer} onDeleteSpecialOffer={handleDeleteSpecialOffer} lang={language} />;
       case 'LEGAL': return <LegalScreen type={legalType} onBack={() => setCurrentScreen('PROFILE')} lang={language} />;
-      default: return <HomeScreen products={products} categories={categories} recentlyViewed={[]} onProductClick={handleProductClick} onAddToCart={addToCart} onNavigate={setCurrentScreen} onCategoryClick={handleCategoryClick} lang={language} settings={systemSettings} />;
+      default: return <HomeScreen products={products} categories={categories} recentlyViewed={[]} specialOffers={specialOffers} onProductClick={handleProductClick} onAddToCart={addToCart} onNavigate={setCurrentScreen} onCategoryClick={handleCategoryClick} lang={language} settings={systemSettings} />;
     }
   };
 

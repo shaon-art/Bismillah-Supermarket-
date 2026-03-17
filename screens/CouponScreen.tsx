@@ -6,9 +6,10 @@ interface CouponScreenProps {
   onBack: () => void;
   coupons: Coupon[];
   specialOffers: SpecialOffer[];
+  lang: 'bn' | 'en';
 }
 
-const CouponScreen: React.FC<CouponScreenProps> = ({ onBack, coupons, specialOffers }) => {
+const CouponScreen: React.FC<CouponScreenProps> = ({ onBack, coupons, specialOffers, lang }) => {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   const activeCoupons = coupons.filter(c => c.isActive);
@@ -30,15 +31,17 @@ const CouponScreen: React.FC<CouponScreenProps> = ({ onBack, coupons, specialOff
         >
           <span className="text-xl">←</span>
         </button>
-        <h2 className="text-lg font-bold text-gray-900">কুপন ও অফার</h2>
+        <h2 className="text-lg font-bold text-gray-900">{lang === 'bn' ? 'কুপন ও অফার' : 'Coupons & Offers'}</h2>
       </div>
 
       <div className="p-5 space-y-6">
         {/* Banner */}
         <div className="bg-gradient-to-r from-green-600 to-green-800 rounded-3xl p-6 text-white shadow-lg shadow-green-100 relative overflow-hidden">
           <div className="relative z-10">
-            <h3 className="text-xl font-black mb-1">সুপার সেভিং ডিলস!</h3>
-            <p className="text-xs text-green-100 font-medium opacity-90">আপনার প্রতিটি অর্ডারে সাশ্রয় করুন সেরা অফারের মাধ্যমে।</p>
+            <h3 className="text-xl font-black mb-1">{lang === 'bn' ? 'সুপার সেভিং ডিলস!' : 'Super Saving Deals!'}</h3>
+            <p className="text-xs text-green-100 font-medium opacity-90">
+              {lang === 'bn' ? 'আপনার প্রতিটি অর্ডারে সাশ্রয় করুন সেরা অফারের মাধ্যমে।' : 'Save on every order with our best offers.'}
+            </p>
           </div>
           <div className="absolute -right-4 -bottom-4 text-7xl opacity-10 transform -rotate-12">🎁</div>
         </div>
@@ -46,8 +49,10 @@ const CouponScreen: React.FC<CouponScreenProps> = ({ onBack, coupons, specialOff
         {/* Coupon List */}
         <section className="space-y-4">
           <div className="flex items-center justify-between px-1">
-            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">চলমান কুপনসমূহ</h4>
-            <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">{activeCoupons.length} টি সচল</span>
+            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">{lang === 'bn' ? 'চলমান কুপনসমূহ' : 'Active Coupons'}</h4>
+            <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+              {activeCoupons.length} {lang === 'bn' ? 'টি সচল' : 'Active'}
+            </span>
           </div>
 
           <div className="space-y-4">
@@ -74,7 +79,7 @@ const CouponScreen: React.FC<CouponScreenProps> = ({ onBack, coupons, specialOff
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       <span className="w-1 h-1 bg-red-400 rounded-full"></span>
-                      <span className="text-[9px] font-bold text-gray-400">মেয়াদ: {coupon.expiry}</span>
+                      <span className="text-[9px] font-bold text-gray-400">{lang === 'bn' ? 'মেয়াদ' : 'Expiry'}: {coupon.expiry}</span>
                     </div>
                     <button 
                       onClick={() => handleCopy(coupon.code)}
@@ -84,14 +89,14 @@ const CouponScreen: React.FC<CouponScreenProps> = ({ onBack, coupons, specialOff
                           : 'bg-green-50 text-green-700 hover:bg-green-100 active:scale-95'
                       }`}
                     >
-                      {copiedCode === coupon.code ? '✓ কপি হয়েছে' : 'কোড কপি করুন'}
+                      {copiedCode === coupon.code ? (lang === 'bn' ? '✓ কপি হয়েছে' : '✓ Copied') : (lang === 'bn' ? 'কোড কপি করুন' : 'Copy Code')}
                     </button>
                   </div>
                 </div>
               </div>
             )) : (
               <div className="p-10 text-center bg-white rounded-3xl border border-dashed border-gray-200">
-                <p className="text-xs font-bold text-gray-400">বর্তমানে কোনো কুপন নেই</p>
+                <p className="text-xs font-bold text-gray-400">{lang === 'bn' ? 'বর্তমানে কোনো কুপন নেই' : 'No coupons available'}</p>
               </div>
             )}
           </div>
@@ -99,7 +104,7 @@ const CouponScreen: React.FC<CouponScreenProps> = ({ onBack, coupons, specialOff
 
         {/* Special Offers Section */}
         <section className="space-y-4 pt-2">
-          <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">আজকের স্পেশাল অফার</h4>
+          <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">{lang === 'bn' ? 'আজকের স্পেশাল অফার' : 'Today\'s Special Offers'}</h4>
           
           <div className="grid grid-cols-1 gap-4">
             {activeOffers.length > 0 ? activeOffers.map(offer => (
@@ -113,7 +118,7 @@ const CouponScreen: React.FC<CouponScreenProps> = ({ onBack, coupons, specialOff
               </div>
             )) : (
               <div className="p-10 text-center bg-white rounded-3xl border border-dashed border-gray-200">
-                <p className="text-xs font-bold text-gray-400">বর্তমানে কোনো স্পেশাল অফার নেই</p>
+                <p className="text-xs font-bold text-gray-400">{lang === 'bn' ? 'বর্তমানে কোনো স্পেশাল অফার নেই' : 'No special offers available'}</p>
               </div>
             )}
           </div>
@@ -121,7 +126,11 @@ const CouponScreen: React.FC<CouponScreenProps> = ({ onBack, coupons, specialOff
 
         {/* Extra Info */}
         <div className="p-4 bg-gray-100 rounded-2xl text-center">
-          <p className="text-[10px] text-gray-400 font-medium">অফারসমূহ ব্যবহারের পূর্বে আমাদের <span className="text-green-600 font-bold underline">শর্তাবলী</span> দেখে নিন।</p>
+          <p className="text-[10px] text-gray-400 font-medium">
+            {lang === 'bn' ? 'অফারসমূহ ব্যবহারের পূর্বে আমাদের ' : 'Please check our '}
+            <span className="text-green-600 font-bold underline">{lang === 'bn' ? 'শর্তাবলী' : 'Terms'}</span>
+            {lang === 'bn' ? ' দেখে নিন।' : ' before using offers.'}
+          </p>
         </div>
       </div>
     </div>
