@@ -172,6 +172,17 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
                   )}
                 </div>
                 <input type="file" ref={profilePicInputRef} className="hidden" accept="image/*" onChange={handleAvatarChange} disabled={isUploading} />
+                
+                <div className="w-full space-y-1 mt-4">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{lang === 'bn' ? 'অথবা প্রোফাইল ছবির লিঙ্ক দিন' : 'Or enter avatar URL'}</label>
+                  <input 
+                    type="text" 
+                    value={editUserData.avatar || ''} 
+                    onChange={(e) => setEditUserData({...editUserData, avatar: e.target.value})}
+                    placeholder="https://example.com/avatar.jpg"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-3 text-[10px] font-bold dark:text-white focus:ring-2 focus:ring-green-500/20"
+                  />
+                </div>
                 {error && <p className="text-[10px] text-red-500 font-bold mt-2">{error}</p>}
               </div>
 

@@ -463,6 +463,17 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
                     )}
                  </div>
                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageChange} disabled={isUploading} />
+                 
+                 <div className="w-full space-y-1">
+                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">{lang === 'bn' ? 'অথবা ছবির লিঙ্ক দিন' : 'Or enter image URL'}</label>
+                    <input 
+                      type="text" 
+                      value={formData.image || ''} 
+                      onChange={e => setFormData(prev => ({...prev, image: e.target.value}))} 
+                      placeholder="https://example.com/image.jpg"
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 outline-none text-[10px] font-bold dark:text-white focus:ring-2 focus:ring-green-500/20" 
+                    />
+                 </div>
               </div>
 
               <div className="space-y-1">
