@@ -1,8 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { TRANSLATIONS } from '../constants';
 import { Screen, User, Order, SystemSettings } from '../types';
-import { uploadToImgBB } from '../utils/imgbb';
-import { uploadToFirebase } from '../utils/firebaseStorage';
+import { uploadImageWithFallback } from '../utils/imageUploader';
 
 interface ProfileScreenProps {
   currentUser: User;
@@ -26,6 +25,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
   lang
 }) => {
   const profilePicInputRef = useRef<HTMLInputElement>(null);
+  const directPicInputRef = useRef<HTMLInputElement>(null);
   const t = TRANSLATIONS[lang] as any;
 
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
@@ -66,22 +66,23 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
     }
   };
 
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>, directSave = false) => {
     const file = e.target.files?.[0];
     if (file) {
       setIsUploading(true);
       setError('');
       try {
-        let imageUrl = '';
         const storageType = settings.preferredStorage || 'FIREBASE';
+        const imageUrl = await uploadImageWithFallback(file, `avatars/${currentUser.id}_${Date.now()}`, storageType);
         
-        if (storageType === 'FIREBASE') {
-          imageUrl = await uploadToFirebase(file, `avatars/${currentUser.id}_${Date.now()}`);
-        } else {
-          imageUrl = await uploadToImgBB(file);
-        }
         setEditUserData(prev => ({ ...prev, avatar: imageUrl }));
-        alert(lang === 'bn' ? 'প্রোফাইল ছবি সফলভাবে আপলোড হয়েছে!' : 'Profile picture uploaded successfully!');
+        
+        if (directSave) {
+          const updatedUser = { ...currentUser, avatar: imageUrl };
+          await onUpdateUser(updatedUser);
+        }
+
+        alert(lang === 'bn' ? 'প্রোফাইল ছবি সফলভাবে আপডেট হয়েছে!' : 'Profile picture updated successfully!');
       } catch (err: any) {
         console.error("Avatar upload failed:", err);
         const msg = lang === 'bn' ? `ছবি আপলোড ব্যর্থ হয়েছে: ${err.message || 'অজানা সমস্যা'}` : `Avatar upload failed: ${err.message || 'Unknown error'}`;
@@ -89,7 +90,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
         alert(msg);
       } finally {
         setIsUploading(false);
-        if (profilePicInputRef.current) profilePicInputRef.current.value = '';
+        if (e.target) e.target.value = '';
       }
     }
   };
@@ -105,12 +106,37 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
         <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/5 rounded-full -mr-16 -mt-16 blur-2xl"></div>
         
         <div className="relative mb-6">
-          <div className="w-28 h-28 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center text-5xl border-4 border-white dark:border-slate-800 shadow-xl relative overflow-hidden group/avatar">
-            {currentUser.avatar ? <img src={currentUser.avatar} className="w-full h-full object-cover" referrerPolicy="no-referrer" /> : currentUser.name.charAt(0)}
+          <div 
+            onClick={() => !isUploading && directPicInputRef.current?.click()}
+            className={`w-28 h-28 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center text-5xl border-4 border-white dark:border-slate-800 shadow-xl relative overflow-hidden group/avatar cursor-pointer ${isUploading ? 'animate-pulse opacity-75' : ''}`}
+            title={lang === 'bn' ? 'প্রোফাইল ছবি পরিবর্তন করতে ক্লিক করুন' : 'Click to change profile picture'}
+          >
+            {isUploading ? (
+              <div className="w-8 h-8 border-3 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+            ) : currentUser.avatar ? (
+              <img src={currentUser.avatar} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            ) : (
+              currentUser.name.charAt(0)
+            )}
+            <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
+              <span className="text-xl">📸</span>
+              <span className="text-[9px] text-white font-black uppercase tracking-tighter">Change</span>
+            </div>
           </div>
+          
+          <input 
+            type="file" 
+            ref={directPicInputRef} 
+            className="hidden" 
+            accept="image/*" 
+            onChange={(e) => handleAvatarChange(e, true)} 
+            disabled={isUploading} 
+          />
+
           <button 
             onClick={openEditModal}
             className="absolute bottom-0 right-0 w-10 h-10 bg-green-600 text-white rounded-2xl flex items-center justify-center shadow-lg border-4 border-white dark:border-slate-900 active:scale-90 transition-transform"
+            title={lang === 'bn' ? 'প্রোফাইল এডিট করুন' : 'Edit Profile'}
           >
             ✏️
           </button>

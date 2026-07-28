@@ -1,8 +1,7 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { Product, Category, Screen, SystemSettings } from '../types';
 import { TRANSLATIONS } from '../constants';
-import { uploadToImgBB } from '../utils/imgbb';
-import { uploadToFirebase } from '../utils/firebaseStorage';
+import { uploadImageWithFallback } from '../utils/imageUploader';
 
 interface ProductManagementScreenProps {
   products: Product[];
@@ -193,15 +192,10 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
       setIsUploading(true);
       setError('');
       try {
-        let imageUrl = '';
         const storageType = settings.preferredStorage || 'FIREBASE';
+        const path = `products/${Date.now()}_${file.name}`;
+        const imageUrl = await uploadImageWithFallback(file, path, storageType);
         
-        if (storageType === 'FIREBASE') {
-          const path = `products/${Date.now()}_${file.name}`;
-          imageUrl = await uploadToFirebase(file, path);
-        } else {
-          imageUrl = await uploadToImgBB(file);
-        }
         setFormData(prev => ({ ...prev, image: imageUrl }));
         alert(lang === 'bn' ? 'ছবি সফলভাবে আপলোড হয়েছে!' : 'Image uploaded successfully!');
       } catch (err: any) {

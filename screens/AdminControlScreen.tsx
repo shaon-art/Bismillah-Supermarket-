@@ -1,8 +1,7 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { SystemSettings, Screen, Product, Order } from '../types';
 import { storage as localStore } from '../utils/storage';
-import { uploadToFirebase } from '../utils/firebaseStorage';
-import { uploadToImgBB } from '../utils/imgbb';
+import { uploadImageWithFallback } from '../utils/imageUploader';
 
 interface AdminControlScreenProps {
   settings: SystemSettings;
@@ -229,21 +228,15 @@ const AdminControlScreen: React.FC<AdminControlScreenProps> = ({
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert(lang === 'bn' ? 'ছবির সাইজ অনেক বড়। দয়া করে ৫ মেগাবাইটের কম সাইজের ছবি দিন।' : 'Image size is too large. Please upload an image under 5MB.');
+      if (file.size > 10 * 1024 * 1024) {
+        alert(lang === 'bn' ? 'ছবির সাইজ অনেক বড়। দয়া করে ১০ মেগাবাইটের কম সাইজের ছবি দিন।' : 'Image size is too large. Please upload an image under 10MB.');
         return;
       }
 
       setIsUploadingLogo(true);
       try {
-        let imageUrl = '';
         const storageType = settings.preferredStorage || 'FIREBASE';
-        
-        if (storageType === 'FIREBASE') {
-          imageUrl = await uploadToFirebase(file, `branding/logo_${Date.now()}`);
-        } else {
-          imageUrl = await uploadToImgBB(file);
-        }
+        const imageUrl = await uploadImageWithFallback(file, `branding/logo_${Date.now()}`, storageType);
         
         handleValueChange('storeLogo', imageUrl);
         alert(lang === 'bn' ? 'লোগো সফলভাবে আপলোড হয়েছে!' : 'Logo uploaded successfully!');

@@ -9,8 +9,9 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     define: {
-      // Robustly handle API Key injection for Vercel build process
-      'process.env.API_KEY': JSON.stringify(process.env.API_KEY || env.API_KEY || ''),
+      // Robustly handle API Key injection for build environments
+      'process.env.API_KEY': JSON.stringify(process.env.API_KEY || env.API_KEY || process.env.GEMINI_API_KEY || env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || ''),
+      'process.env.GEMINI_API_KEY': JSON.stringify(process.env.GEMINI_API_KEY || env.GEMINI_API_KEY || process.env.API_KEY || env.API_KEY || env.VITE_GEMINI_API_KEY || ''),
     },
     server: {
       host: true,
