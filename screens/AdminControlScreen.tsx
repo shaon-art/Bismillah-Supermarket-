@@ -105,7 +105,12 @@ const AdminControlScreen: React.FC<AdminControlScreenProps> = ({
   };
 
   const handleValueChange = (field: keyof SystemSettings, value: any) => {
-    onUpdateSettings({ ...settings, [field]: value });
+    const newSettings = { ...settings, [field]: value };
+    // Ensure preferredStorage is always set if we're touching settings
+    if (!newSettings.preferredStorage) {
+      newSettings.preferredStorage = 'FIREBASE';
+    }
+    onUpdateSettings(newSettings);
   };
 
   // --- Real-time Calculations ---
@@ -194,6 +199,7 @@ const AdminControlScreen: React.FC<AdminControlScreenProps> = ({
         lastSyncTimestamp: new Date().toISOString()
       });
       setManualSyncing(false);
+      alert(lang === 'bn' ? 'সার্ভারের সাথে ডাটা সফলভাবে সিঙ্ক হয়েছে!' : 'Data synced with server successfully!');
     }, 1500);
   };
 
@@ -231,17 +237,22 @@ const AdminControlScreen: React.FC<AdminControlScreenProps> = ({
       setIsUploadingLogo(true);
       try {
         let imageUrl = '';
-        if (settings.preferredStorage === 'FIREBASE') {
+        const storageType = settings.preferredStorage || 'FIREBASE';
+        
+        if (storageType === 'FIREBASE') {
           imageUrl = await uploadToFirebase(file, `branding/logo_${Date.now()}`);
         } else {
           imageUrl = await uploadToImgBB(file);
         }
+        
         handleValueChange('storeLogo', imageUrl);
+        alert(lang === 'bn' ? 'লোগো সফলভাবে আপলোড হয়েছে!' : 'Logo uploaded successfully!');
       } catch (err: any) {
         console.error("Logo upload failed:", err);
-        alert(lang === 'bn' ? 'লোগো আপলোড ব্যর্থ হয়েছে' : 'Logo upload failed');
+        alert(lang === 'bn' ? `লোগো আপলোড ব্যর্থ হয়েছে: ${err.message || 'অজানা সমস্যা'}` : `Logo upload failed: ${err.message || 'Unknown error'}`);
       } finally {
         setIsUploadingLogo(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
       }
     }
   };

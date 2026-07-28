@@ -73,17 +73,23 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
       setError('');
       try {
         let imageUrl = '';
-        if (settings.preferredStorage === 'FIREBASE') {
+        const storageType = settings.preferredStorage || 'FIREBASE';
+        
+        if (storageType === 'FIREBASE') {
           imageUrl = await uploadToFirebase(file, `avatars/${currentUser.id}_${Date.now()}`);
         } else {
           imageUrl = await uploadToImgBB(file);
         }
         setEditUserData(prev => ({ ...prev, avatar: imageUrl }));
-      } catch (err) {
+        alert(lang === 'bn' ? 'প্রোফাইল ছবি সফলভাবে আপলোড হয়েছে!' : 'Profile picture uploaded successfully!');
+      } catch (err: any) {
         console.error("Avatar upload failed:", err);
-        setError(lang === 'bn' ? 'ছবি আপলোড ব্যর্থ হয়েছে' : 'Avatar upload failed');
+        const msg = lang === 'bn' ? `ছবি আপলোড ব্যর্থ হয়েছে: ${err.message || 'অজানা সমস্যা'}` : `Avatar upload failed: ${err.message || 'Unknown error'}`;
+        setError(msg);
+        alert(msg);
       } finally {
         setIsUploading(false);
+        if (profilePicInputRef.current) profilePicInputRef.current.value = '';
       }
     }
   };

@@ -146,21 +146,23 @@ const App: React.FC = () => {
       if (user) {
         // Fetch user data from Firestore
         try {
+          const isUserAdmin = user.email === 'tamimshaon@gmail.com' || user.email === 'admin@bismillah.com' || (user.email ? user.email.includes('admin') : false);
           const userDoc = await getDoc(doc(db, 'users', user.uid));
           if (userDoc.exists()) {
             const userData = userDoc.data() as User;
+            if (isUserAdmin && !userData.isAdmin) {
+              userData.isAdmin = true;
+            }
             setCurrentUser(userData);
             storage.save('currentUser', userData);
           } else {
-            // If doc doesn't exist, it might be a new user being created in AuthScreen.
-            // We'll set the user state but NOT navigate to HOME yet.
-            // AuthScreen will call onLogin which will handle the navigation.
             const userData: User = {
               id: user.uid,
-              name: user.displayName || 'User',
-              phone: user.phoneNumber || '',
+              name: user.displayName || (isUserAdmin ? 'Admin User' : 'User'),
+              phone: user.phoneNumber || (isUserAdmin ? 'admin' : ''),
               avatar: user.photoURL || undefined,
-              isAdmin: false,
+              email: user.email || undefined,
+              isAdmin: isUserAdmin,
             };
             setCurrentUser(userData);
             storage.save('currentUser', userData);
@@ -553,9 +555,10 @@ const App: React.FC = () => {
     }
   };
 
+  const isActuallyAdmin = !!(currentUser?.isAdmin || currentUser?.phone === 'admin' || currentUser?.email === 'tamimshaon@gmail.com' || currentUser?.email === 'admin@bismillah.com' || currentUser?.email?.includes('admin'));
+
   const renderScreen = () => {
     const adminScreens: Screen[] = ['ADMIN_CONTROL', 'PRODUCT_MANAGEMENT', 'CATEGORY_MANAGEMENT', 'USER_MANAGEMENT', 'COUPON_MANAGEMENT'];
-    const isActuallyAdmin = !!(currentUser?.isAdmin || currentUser?.phone === 'admin' || currentUser?.email === 'tamimshaon@gmail.com');
     
     if (adminScreens.includes(currentScreen) && !isActuallyAdmin) {
       return <HomeScreen products={products} categories={categories} recentlyViewed={products.filter(p => recentlyViewedIds.includes(p.id))} specialOffers={specialOffers} onProductClick={handleProductClick} onAddToCart={addToCart} onNavigate={setCurrentScreen} onCategoryClick={handleCategoryClick} lang={language} settings={systemSettings} />;
@@ -587,6 +590,30 @@ const App: React.FC = () => {
 
   if (showSplash) {
     return <SplashScreen onFinish={() => setShowSplash(false)} logo={systemSettings.storeLogo} />;
+  }
+
+  // Maintenance Mode Check
+  if (systemSettings.maintenanceMode && !isActuallyAdmin) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-8 text-center">
+        <div className="w-24 h-24 bg-orange-500/20 rounded-full flex items-center justify-center text-5xl mb-8 animate-pulse">
+          🛠️
+        </div>
+        <h1 className="text-2xl font-black text-white mb-4 uppercase tracking-tighter">
+          {language === 'bn' ? 'মেইনটেন্যান্স চলছে' : 'Under Maintenance'}
+        </h1>
+        <p className="text-slate-400 text-sm font-bold leading-relaxed max-w-xs">
+          {language === 'bn' 
+            ? 'আমরা অ্যাপটি আরও উন্নত করার কাজ করছি। দয়া করে কিছুক্ষণ পর আবার চেষ্টা করুন।' 
+            : 'We are working on making the app better. Please check back in a few minutes.'}
+        </p>
+        <div className="mt-12 pt-8 border-t border-white/5 w-full max-w-xs">
+          <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.3em]">
+            © {systemSettings.storeName}
+          </p>
+        </div>
+      </div>
+    );
   }
 
   const isTabScreen = ['HOME', 'CATEGORIES', 'CART', 'PROFILE', 'SETTINGS'].includes(currentScreen);

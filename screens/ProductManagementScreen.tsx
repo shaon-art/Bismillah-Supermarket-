@@ -194,18 +194,24 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({
       setError('');
       try {
         let imageUrl = '';
-        if (settings.preferredStorage === 'FIREBASE') {
+        const storageType = settings.preferredStorage || 'FIREBASE';
+        
+        if (storageType === 'FIREBASE') {
           const path = `products/${Date.now()}_${file.name}`;
           imageUrl = await uploadToFirebase(file, path);
         } else {
           imageUrl = await uploadToImgBB(file);
         }
         setFormData(prev => ({ ...prev, image: imageUrl }));
-      } catch (err) {
+        alert(lang === 'bn' ? 'ছবি সফলভাবে আপলোড হয়েছে!' : 'Image uploaded successfully!');
+      } catch (err: any) {
         console.error("Image upload failed:", err);
-        setError(lang === 'bn' ? 'ছবি আপলোড ব্যর্থ হয়েছে' : 'Image upload failed');
+        const msg = lang === 'bn' ? `ছবি আপলোড ব্যর্থ হয়েছে: ${err.message || 'অজানা সমস্যা'}` : `Image upload failed: ${err.message || 'Unknown error'}`;
+        setError(msg);
+        alert(msg);
       } finally {
         setIsUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
       }
     }
   };

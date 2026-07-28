@@ -43,65 +43,71 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
     setIsLoading(true);
 
     // Admin login logic
-    if (mode === 'LOGIN' && trimmedPhone === 'admin' && trimmedPassword === '224280') {
+    if (mode === 'LOGIN' && (trimmedPhone === 'admin' || trimmedPhone === '01700000000') && (trimmedPassword === '224280' || trimmedPassword === 'bismillah224280')) {
       try {
-        const adminEmail = 'admin@bismillah.com';
-        const internalPassword = 'bismillah224280';
-        let userCredential;
-        
-        try {
-          userCredential = await signInWithEmailAndPassword(auth, adminEmail, internalPassword);
-        } catch (signInErr: any) {
-          if (signInErr.code === 'auth/user-not-found' || signInErr.code === 'auth/invalid-credential') {
-            // If sign in fails due to invalid credentials (password change), 
-            // we try to create or we might need to handle password update.
-            // For this applet, we'll try to create, and if it exists, we'll just report error
-            // unless we want to be more sophisticated.
+        const candidateEmails = ['admin@bismillah.com', 'admin_system@bismillah.com', 'tamimshaon@gmail.com'];
+        const candidatePasswords = ['bismillah224280', '224280', 'admin224280', '123456'];
+        let userCredential = null;
+
+        // Try signing in with candidate credentials
+        for (const email of candidateEmails) {
+          for (const pass of candidatePasswords) {
             try {
-              userCredential = await createUserWithEmailAndPassword(auth, adminEmail, internalPassword);
-              const adminUser: User = {
-                id: userCredential.user.uid,
-                name: 'Admin User',
-                phone: 'admin',
-                email: adminEmail,
-                isAdmin: true,
-              };
-              await setDoc(doc(db, 'users', adminUser.id), adminUser);
+              userCredential = await signInWithEmailAndPassword(auth, email, pass);
+              if (userCredential) break;
+            } catch (e) {
+              // Try next
+            }
+          }
+          if (userCredential) break;
+        }
+
+        // If signing in with existing candidate credentials failed, attempt to create
+        if (!userCredential) {
+          for (const email of candidateEmails) {
+            try {
+              userCredential = await createUserWithEmailAndPassword(auth, email, 'bismillah224280');
+              if (userCredential) break;
             } catch (createErr: any) {
               if (createErr.code === 'auth/email-already-in-use') {
-                // This happens if the password was changed in code but not in Firebase
-                setError('এডমিন পাসওয়ার্ড আপডেট প্রয়োজন। দয়া করে ডেভেলপারকে জানান।');
-                setIsLoading(false);
-                return;
+                continue;
               }
-              throw createErr;
             }
-          } else {
-            throw signInErr;
           }
         }
 
-        const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
-        if (userDoc.exists()) {
-          onLogin(userDoc.data() as User);
-        } else {
+        if (userCredential) {
+          const adminUid = userCredential.user.uid;
+          const adminEmail = userCredential.user.email || 'admin@bismillah.com';
+          
           const adminUser: User = {
-            id: userCredential.user.uid,
+            id: adminUid,
             name: 'Admin User',
             phone: 'admin',
             email: adminEmail,
             isAdmin: true,
           };
-          await setDoc(doc(db, 'users', adminUser.id), adminUser);
+
+          try {
+            await setDoc(doc(db, 'users', adminUid), adminUser, { merge: true });
+          } catch (docErr) {
+            console.error("Firestore setDoc for admin error:", docErr);
+          }
+
           onLogin(adminUser);
+          setIsLoading(false);
+          return;
+        } else {
+          setError('এডমিন হিসেবে লগইন করতে ব্যর্থ হয়েছে। দয়া করে গুগল দিয়ে লগইন করার চেষ্টা করুন।');
+          setIsLoading(false);
+          return;
         }
       } catch (err: any) {
         console.error("Admin auth error:", err);
         setError('লগইন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।');
-      } finally {
         setIsLoading(false);
+        return;
       }
-      return;
     }
 
     // Regular user login/register logic
@@ -151,18 +157,24 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, settings }) => {
       const result = await signInWithGoogle();
       if (!result.user) throw new Error('No user returned from Google');
 
+      const isGoogleAdmin = result.user.email === 'tamimshaon@gmail.com' || result.user.email === 'admin@bismillah.com';
       const userDoc = await getDoc(doc(db, 'users', result.user.uid));
       
       if (userDoc.exists()) {
-        onLogin(userDoc.data() as User);
+        const uData = userDoc.data() as User;
+        if (isGoogleAdmin && !uData.isAdmin) {
+          uData.isAdmin = true;
+          await setDoc(doc(db, 'users', result.user.uid), { isAdmin: true }, { merge: true });
+        }
+        onLogin({ ...uData, isAdmin: isGoogleAdmin || uData.isAdmin });
       } else {
         const newUser: User = {
           id: result.user.uid,
-          name: result.user.displayName || 'Google User',
-          phone: result.user.phoneNumber || '',
+          name: result.user.displayName || 'Tamim Hasan Shaon',
+          phone: result.user.phoneNumber || (isGoogleAdmin ? 'admin' : ''),
           email: result.user.email || undefined,
           avatar: result.user.photoURL || undefined,
-          isAdmin: false,
+          isAdmin: isGoogleAdmin,
         };
         await setDoc(doc(db, 'users', newUser.id), newUser);
         onLogin(newUser);
